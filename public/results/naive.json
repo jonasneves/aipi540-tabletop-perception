@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.24193548387096775,
+  "per_class_f1": {
+    "cell_phone": 0.0,
+    "cup": 0.38095238095238093,
+    "headphone": 0.0,
+    "laptop": 0.39999999999999997,
+    "scissors": 0.0,
+    "stapler": 0.0
+  },
+  "n": 62,
+  "centroids": {
+    "cell_phone": 129.0,
+    "cup": 26.5,
+    "headphone": 133.5,
+    "laptop": 144.0,
+    "scissors": 41.0,
+    "stapler": 119.0
+  },
+  "model": "naive_hsv_dominant_hue"
+}
