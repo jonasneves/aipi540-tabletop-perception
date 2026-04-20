@@ -1,0 +1,83 @@
+{
+  "model": "dl_mobilenetv3_small_head_finetune",
+  "classes": [
+    "cell_phone",
+    "cup",
+    "headphone",
+    "laptop",
+    "scissors",
+    "stapler"
+  ],
+  "accuracy": 0.967741935483871,
+  "per_class_f1": {
+    "cell_phone": 1.0,
+    "cup": 0.9523809523809523,
+    "headphone": 0.823529411764706,
+    "laptop": 1.0,
+    "scissors": 0.8571428571428571,
+    "stapler": 1.0
+  },
+  "history": [
+    {
+      "epoch": 0,
+      "train_loss": 1.3151546141196941,
+      "test_acc": 0.9032258064516129
+    },
+    {
+      "epoch": 1,
+      "train_loss": 0.6201373327280827,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.44282325885305,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.356278017791295,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.30249559708025264,
+      "test_acc": 0.967741935483871
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.2570783534725964,
+      "test_acc": 0.967741935483871
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.24633332847178668,
+      "test_acc": 0.967741935483871
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.1914508500461149,
+      "test_acc": 0.967741935483871
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.19125006459225183,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.2001761834055071,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.18965978800565347,
+      "test_acc": 0.9516129032258065
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.2132080797948143,
+      "test_acc": 0.9516129032258065
+    }
+  ],
+  "epochs": 12
+}
