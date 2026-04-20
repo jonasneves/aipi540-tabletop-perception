@@ -1,0 +1,15 @@
+{
+  "model": "classical_colorhist_hog_gbm",
+  "accuracy": 0.7580645161290323,
+  "per_class_f1": {
+    "cell_phone": 0.846153846153846,
+    "cup": 0.625,
+    "headphone": 0.5714285714285715,
+    "laptop": 0.9090909090909091,
+    "scissors": 0.7058823529411764,
+    "stapler": 0.6666666666666666
+  },
+  "n_train": 261,
+  "n_test": 62,
+  "feature_dim": 1802
+}
