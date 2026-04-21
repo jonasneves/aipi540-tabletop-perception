@@ -244,6 +244,13 @@ const VLM_MODEL = 'LiquidAI/LFM2.5-VL-450M-ONNX';
 const CONF_MIN   = 0.55;  // top-1 must clear this to display
 const MARGIN_MIN = 0.10;  // top-1 must beat top-2 by at least this
 
+// Display smoothing — the classifier runs at ~70 fps but humans can't parse
+// that rate. EMA_ALPHA=0.2 gives ~5-frame memory (~70 ms settling) so the
+// class label + score don't flip on ordinary webcam jitter. RENDER_MIN_MS
+// caps DOM writes to 4 Hz so the chip + latency cells don't visibly churn.
+const EMA_ALPHA     = 0.2;
+const RENDER_MIN_MS = 250;
+
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam');
@@ -260,6 +267,9 @@ let vlmLoading = false;
 let classifierLoopActive = false;
 let dlFrameCount = 0;
 let dlWindowStart = 0;
+let emaProbs = null;   // smoothed per-class probabilities, carried across frames
+let emaLatMs = 0;      // smoothed classifier inference latency
+let lastRender = 0;    // last wall-clock ms we wrote to the chip + lat DOM
 
 function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
@@ -296,6 +306,7 @@ function stopCam() {
   placeholder.style.display = '';
   topChip.style.display = 'none';
   stage.classList.remove('live');
+  emaProbs = null; emaLatMs = 0; lastRender = 0;
 }
 
 async function loadClassifier() {
@@ -354,7 +365,15 @@ async function classifierStep() {
   const dt = performance.now() - t0;
   const logits = Array.from(out.logits.data);
   const probs = softmax(logits);
-  const ranked = probs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
+  // EMA-smooth per-class probabilities so the top-1 label + score don't flip
+  // on frame-to-frame jitter. Carries across ticks via module-scoped emaProbs.
+  if (!emaProbs || emaProbs.length !== probs.length) emaProbs = probs.slice();
+  else for (let i = 0; i < probs.length; i++)
+    emaProbs[i] = EMA_ALPHA * probs[i] + (1 - EMA_ALPHA) * emaProbs[i];
+  emaLatMs = emaLatMs ? EMA_ALPHA * dt + (1 - EMA_ALPHA) * emaLatMs : dt;
+  const ranked = emaProbs
+    .map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p }))
+    .sort((a, b) => b.p - a.p);
   return { ranked, dt };
 }
 
@@ -398,13 +417,19 @@ async function startClassifierLoop() {
       try {
         const r = await classifierStep();
         if (r) {
-          renderChip(r.ranked);
-          $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
+          const now = performance.now();
+          // Throttle DOM writes to ~4 Hz. The classifier still runs full-rate;
+          // the user sees stable text instead of 70 fps churn.
+          if (now - lastRender > RENDER_MIN_MS) {
+            renderChip(r.ranked);
+            $('dl-lat').textContent = emaLatMs.toFixed(0) + ' ms';
+            lastRender = now;
+          }
           dlFrameCount++;
-          const elapsed = performance.now() - dlWindowStart;
+          const elapsed = now - dlWindowStart;
           if (elapsed > 1000) {
             $('dl-fps').textContent = (dlFrameCount / elapsed * 1000).toFixed(1) + ' fps';
-            dlWindowStart = performance.now();
+            dlWindowStart = now;
             dlFrameCount = 0;
           }
         }
