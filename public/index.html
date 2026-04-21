@@ -67,6 +67,7 @@
     aspect-ratio: 4 / 3;
     max-height: calc(100dvh - 180px);
     width: 100%;
+    transition: box-shadow 0.25s ease;
   }
   .stage video, .stage canvas {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
@@ -76,26 +77,50 @@
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     color: #888; font-size: 14px; text-align: center; padding: 20px;
   }
+  /* Active-feed glow */
+  .stage.live { box-shadow: 0 0 0 1px var(--royal), 0 0 24px rgba(0, 83, 155, 0.20); }
+
   .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
   .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
   .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 
-  .top-labels {
-    position: absolute; top: 12px; left: 12px; right: 12px;
-    background: rgba(1, 33, 105, 0.88); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    color: white; padding: 10px 12px; border-radius: 8px; font-size: 13px;
-    display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline;
+  /* Top-of-stage classifier chip — single, decisive */
+  .top-chip {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(1, 33, 105, 0.88);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    color: white;
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
   }
-  .top-labels .chip { font-weight: 600; display: flex; align-items: baseline; gap: 6px; }
-  .top-labels .chip .score { opacity: 0.75; font-weight: 400; font-variant-numeric: tabular-nums; }
-  .top-labels .muted { opacity: 0.6; font-weight: 400; font-style: italic; }
+  .top-chip .label-name  { font-size: 14px; }
+  .top-chip .label-score {
+    font-size: 12px; opacity: 0.72; font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, "SF Mono", monospace;
+  }
+  .top-chip.uncertain { background: rgba(200, 78, 0, 0.92); }
+  .top-chip .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #5cd17b; box-shadow: 0 0 8px #5cd17b;
+    animation: livePulse 1.6s ease-in-out infinite;
+  }
+  .top-chip.uncertain .pulse { background: #ffd28a; box-shadow: 0 0 8px #ffd28a; }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   .stage-caption {
     position: absolute; bottom: 12px; left: 12px; right: 12px;
     background: rgba(0,0,0,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     color: white; padding: 10px 12px; border-radius: 8px;
     font-size: 13px; font-style: italic; line-height: 1.4;
-    max-height: 80px; overflow: auto;
+    /* Clamp at 4 lines so the box doesn't bounce as VLM output length varies. */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -153,9 +178,13 @@
     <div class="stage" id="stage">
       <video id="video" playsinline muted></video>
       <div class="bbox-layer" id="bboxes"></div>
-      <div class="top-labels" id="top-labels" style="display:none"></div>
+      <div class="top-chip" id="top-chip" style="display:none">
+        <div class="pulse"></div>
+        <div class="label-name" id="chip-name">—</div>
+        <div class="label-score" id="chip-score"></div>
+      </div>
       <div class="stage-caption" id="caption" style="display:none"></div>
-      <div class="placeholder" id="placeholder">Click <strong>Start camera</strong> to begin.</div>
+      <div class="placeholder" id="placeholder"><span>Click <strong>Start camera</strong> to begin.</span></div>
     </div>
     <div class="controls">
       <button id="start-cam">Start camera</button>
@@ -245,10 +274,17 @@ const IMAGENET_MEAN = [0.485, 0.456, 0.406];
 const IMAGENET_STD = [0.229, 0.224, 0.225];
 const VLM_MODEL = 'LiquidAI/LFM2.5-VL-450M-ONNX';
 
+// Confidence gate: don't claim a label if the model is unsure.
+const CONF_MIN   = 0.55;  // top-1 must clear this to display
+const MARGIN_MIN = 0.10;  // top-1 must beat top-2 by at least this
+
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
-const startBtn = $('start-cam'), stopBtn = $('stop-cam'), loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
-const topLabels = $('top-labels'), bboxLayer = $('bboxes'), captionEl = $('caption');
+const startBtn = $('start-cam'), stopBtn = $('stop-cam');
+const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
+const stage = $('stage');
+const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
+const bboxLayer = $('bboxes'), captionEl = $('caption');
 const qStatus = $('q-status');
 
 let stream = null;
@@ -286,6 +322,7 @@ async function startCam() {
   await video.play();
   placeholder.style.display = 'none';
   startBtn.disabled = true; stopBtn.disabled = false;
+  stage.classList.add('live');
   startClassifierLoop();
 }
 function stopCam() {
@@ -293,7 +330,8 @@ function stopCam() {
   stream = null; classifierLoopActive = false;
   startBtn.disabled = false; stopBtn.disabled = true;
   placeholder.style.display = '';
-  topLabels.style.display = 'none';
+  topChip.style.display = 'none';
+  stage.classList.remove('live');
 }
 
 async function loadClassifier() {
@@ -313,7 +351,7 @@ async function loadClassifier() {
     window._ort = ort;
     return classifierSession;
   } catch (e) {
-    setStatus('dl-status', 'load failed — see console', 'fail');
+    setStatus('dl-status', 'load failed', 'fail');
     console.error('Classifier load failed:', e);
     return null;
   }
@@ -344,8 +382,7 @@ function canvasToCHWTensor(canvas) {
 
 async function classifierStep() {
   if (!classifierSession || !video.videoWidth || !window._ort) return null;
-  const canvas = captureFrame(224);
-  if (!canvas) return null;
+  const canvas = captureFrame(224); if (!canvas) return null;
   const arr = canvasToCHWTensor(canvas);
   const input = new window._ort.Tensor('float32', arr, [1, 3, 224, 224]);
   const t0 = performance.now();
@@ -354,15 +391,28 @@ async function classifierStep() {
   const logits = Array.from(out.logits.data);
   const probs = softmax(logits);
   const ranked = probs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
-  return { top: ranked.slice(0, 3), dt };
+  return { ranked, dt };
 }
 
-function renderTopLabels(top3, ready) {
-  if (!ready) { topLabels.style.display = 'none'; return; }
-  topLabels.style.display = 'flex';
-  topLabels.innerHTML = top3.map(r =>
-    `<div class="chip">${r.cls}<span class="score">${(r.p * 100).toFixed(0)}%</span></div>`
-  ).join('');
+// Confidence gate. The classifier has no rejection class and was trained on
+// object-centric Caltech-101 photos; on cluttered webcam scenes it will
+// confidently emit a top label. Only display a name when the top-1 clears
+// CONF_MIN AND beats top-2 by MARGIN_MIN; otherwise show "uncertain".
+function renderChip(ranked) {
+  if (!ranked || !ranked.length) { topChip.style.display = 'none'; return; }
+  topChip.style.display = 'flex';
+  const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
+  const margin = top1.p - top2.p;
+  const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
+  if (certain) {
+    topChip.classList.remove('uncertain');
+    chipName.textContent  = top1.cls;
+    chipScore.textContent = (top1.p * 100).toFixed(0) + '%';
+  } else {
+    topChip.classList.add('uncertain');
+    chipName.textContent  = 'uncertain';
+    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%';
+  }
 }
 
 async function startClassifierLoop() {
@@ -370,8 +420,11 @@ async function startClassifierLoop() {
   classifierLoopActive = true;
   const session = await loadClassifier();
   if (!session) {
-    topLabels.style.display = 'flex';
-    topLabels.innerHTML = '<span class="muted">classifier not available — open-vocab query and narration still work</span>';
+    topChip.style.display = 'flex';
+    topChip.classList.add('uncertain');
+    chipName.textContent  = 'classifier unavailable';
+    chipScore.textContent = 'open-vocab still works';
+    return;
   }
   dlWindowStart = performance.now();
   dlFrameCount = 0;
@@ -381,7 +434,7 @@ async function startClassifierLoop() {
       try {
         const r = await classifierStep();
         if (r) {
-          renderTopLabels(r.top, true);
+          renderChip(r.ranked);
           $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
           dlFrameCount++;
           const elapsed = performance.now() - dlWindowStart;
@@ -431,6 +484,7 @@ async function captureRawImage() {
   return new vlm.RawImage(imgData.data, 512, 512, 4);
 }
 
+// VLM detect — observation directive with NONE sentinel for honest refusal.
 async function vlmDetect(query) {
   if (!vlm) {
     setQStatus('loading VLM — please wait', 'loading');
@@ -440,12 +494,16 @@ async function vlmDetect(query) {
   if (!video.videoWidth) { setQStatus('start the camera first', 'empty'); return; }
   const raw = await captureRawImage();
   setQStatus('detecting…', 'loading');
-  const prompt = `Detect all instances of: ${query}. Response must be a JSON array: [{"label": "...", "bbox": [x1, y1, x2, y2]}, ...]. Coordinates are normalized to [0,1]. If not present, say so in plain text.`;
+  const prompt =
+    `You are a careful detector. Look at the image and decide whether a ${query} is actually visible. ` +
+    `If a ${query} IS visible, respond with one JSON object exactly: {"label":"${query}","bbox":[x1,y1,x2,y2]} ` +
+    `with coordinates normalized to [0,1]. ` +
+    `If a ${query} is NOT visible, respond with the single word: NONE`;
   const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: prompt }] }];
   const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
   const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
   const t0 = performance.now();
-  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 128 });
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
   const dt = performance.now() - t0;
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   const text = decoded[0];
@@ -455,19 +513,28 @@ async function vlmDetect(query) {
 
 function renderDetectOutput(text, query, dt) {
   bboxLayer.innerHTML = '';
-  const start = text.indexOf('['); const end = text.lastIndexOf(']');
+  const trimmed = text.trim();
+  if (/^NONE\b/i.test(trimmed)) {
+    setQStatus(`no ${query} visible`, 'empty', dt.toFixed(0) + ' ms');
+    return;
+  }
+  const start = text.indexOf('{');
+  const end   = text.lastIndexOf('}');
   let boxes = [];
   if (start !== -1 && end > start) {
     try {
-      const arr = JSON.parse(text.slice(start, end + 1));
-      if (Array.isArray(arr)) {
-        boxes = arr.filter(d => d && Array.isArray(d.bbox) && d.bbox.length === 4)
-          .map(d => ({ label: d.label || query, bbox: d.bbox.map(v => Math.max(0, Math.min(1, v))) }));
-      }
+      const obj = JSON.parse(text.slice(start, end + 1));
+      const arr = Array.isArray(obj) ? obj : [obj];
+      boxes = arr
+        .filter(d => d && Array.isArray(d.bbox) && d.bbox.length === 4)
+        .map(d => ({
+          label: d.label || query,
+          bbox: d.bbox.map(v => Math.max(0, Math.min(1, v))),
+        }));
     } catch {}
   }
   if (!boxes.length) {
-    const msg = text.length < 160 ? text.trim() : 'no match — ' + text.slice(0, 100).trim() + '…';
+    const msg = trimmed.length < 160 ? trimmed : trimmed.slice(0, 100) + '…';
     setQStatus(msg, 'empty', dt.toFixed(0) + ' ms');
     return;
   }
@@ -483,19 +550,28 @@ function renderDetectOutput(text, query, dt) {
   }
 }
 
+// VLM narrate — observation directive, list distinct objects only.
 async function vlmNarrate() {
   if (!vlm) return;
   const raw = await captureRawImage(); if (!raw) return;
-  const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: 'Describe this image concisely. Name each distinct object and its approximate position.' }] }];
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'image' },
+      { type: 'text', text: 'List the distinct physical objects visible in the image, one per line. Skip walls, ceiling, and background.' }
+    ]
+  }];
   const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
   const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
   const t0 = performance.now();
-  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 128 });
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
   const dt = performance.now() - t0;
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
   captionEl.style.display = '';
-  captionEl.textContent = decoded[0].trim();
+  const full = decoded[0].trim();
+  captionEl.textContent = full;
+  captionEl.title = full;
 }
 
 function toggleNarrate() {
@@ -526,11 +602,11 @@ async function loadStaticResults() {
   }
 }
 
-// ── Phone mode ──────────────────────────────────────────────
+// ── Phone mode ─────────────────────────────────────────────────
 let phoneHandle = null;
-const phonePanel = $('phone-panel');
+const phonePanel  = $('phone-panel');
 const phoneStatus = $('phone-status');
-const phoneBtn = $('use-phone');
+const phoneBtn    = $('use-phone');
 
 function setPhoneStatus(txt, level = '') {
   phoneStatus.className = 'q-status ' + level;
@@ -560,6 +636,7 @@ function startPhoneMode() {
       video.play().catch(() => {});
       placeholder.style.display = 'none';
       startBtn.disabled = true; stopBtn.disabled = false;
+      stage.classList.add('live');
       setPhoneStatus('phone connected', 'ok');
       if (!classifierLoopActive) startClassifierLoop();
     },
@@ -573,12 +650,13 @@ function stopPhone() {
   phoneBtn.textContent = 'Use phone camera';
   phoneBtn.classList.add('ghost');
   if (video.srcObject && video.srcObject.getTracks().some(t => t.readyState === 'live')) {
-    // leave stream intact if still active from phone; user can click Stop
+    // leave stream intact if still active from phone
   } else {
     placeholder.style.display = '';
     startBtn.disabled = false; stopBtn.disabled = true;
     classifierLoopActive = false;
-    topLabels.style.display = 'none';
+    topChip.style.display = 'none';
+    stage.classList.remove('live');
   }
 }
 
@@ -594,7 +672,8 @@ $('q-form').addEventListener('submit', (e) => {
 });
 
 loadStaticResults();
-if (!navigator.gpu) setStatus('vlm-status', 'no WebGPU — use Chrome 113+', 'fail');
+loadClassifier();   // warm in the background so first camera-start is fast
+if (!navigator.gpu) setStatus('vlm-status', 'no WebGPU — Chrome 113+', 'fail');
 </script>
 
 </body>
