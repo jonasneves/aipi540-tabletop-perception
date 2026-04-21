@@ -1,0 +1,34 @@
+{
+  "per_query": {
+    "line": {
+      "mean_iou": 0.3775883685329881,
+      "recall_at_0.3": 0.8,
+      "mean_preds": 0.9,
+      "mean_dt_ms": 1384.5200000762939
+    },
+    "obstacle": {
+      "mean_iou": 0.0025901034176912005,
+      "recall_at_0.3": 0.0,
+      "mean_preds": 1.0,
+      "mean_dt_ms": 1296.4
+    },
+    "goal marker": {
+      "mean_iou": 0.029614569036963644,
+      "recall_at_0.3": 0.0,
+      "mean_preds": 1.0,
+      "mean_dt_ms": 1302.1300000190736
+    },
+    "target": {
+      "mean_iou": 0.048676384574081584,
+      "recall_at_0.3": 0.0,
+      "mean_preds": 1.0,
+      "mean_dt_ms": 1292.580000114441
+    }
+  },
+  "latency_ms": {
+    "p50": 1298.3000001907349,
+    "p90": 1323.0999994277954,
+    "mean": 1318.9075000524522,
+    "n": 40
+  }
+}

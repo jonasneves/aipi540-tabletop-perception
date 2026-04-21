@@ -4,7 +4,19 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tabletop Perception — AIPI 540</title>
-<meta name="description" content="Live comparison of a fine-tuned MobileNetV3-small classifier against an open-vocab LFM2.5-VL-450M VLM for beginner robot kit perception." />
+<meta name="description" content="In-browser live demo: a 3M-parameter MobileNetV3-small specialist (97% at ~15 ms/frame) running alongside a 450M-parameter LFM2.5-VL-450M VLM on the same webcam stream. Duke AIPI 540 final." />
+<meta name="author" content="Jonas Neves" />
+<meta name="theme-color" content="#012169" />
+<link rel="canonical" href="https://neevs.io/aipi540-tabletop-perception/" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'12'%20fill%3D'%23012169'%2F%3E%3Cpath%20d%3D'M14%2044h36M14%2044v-8a10%2010%200%200110-10h16a10%2010%200%200110%2010v8'%20stroke%3D'%23fff'%20stroke-width%3D'4'%20stroke-linecap%3D'round'%20fill%3D'none'%2F%3E%3Ccircle%20cx%3D'32'%20cy%3D'26'%20r%3D'3'%20fill%3D'%23C84E00'%2F%3E%3C%2Fsvg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Duke AIPI 540 — Tabletop Perception" />
+<meta property="og:title" content="Tabletop Perception — specialist vs. VLM, live in the browser" />
+<meta property="og:description" content="A 3M-parameter MobileNetV3-small specialist (97%, ~15 ms) running alongside a 450M-parameter LFM2.5-VL-450M VLM on the same webcam stream. Duke AIPI 540 final." />
+<meta property="og:url" content="https://neevs.io/aipi540-tabletop-perception/" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Tabletop Perception — specialist vs. VLM, live in the browser" />
+<meta name="twitter:description" content="A 3M-parameter specialist (97%, ~15 ms) next to a 450M-parameter VLM (~1.3 s) on the same webcam stream. Duke AIPI 540 final." />
 <style>
   :root {
     --navy: #012169;

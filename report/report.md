@@ -9,7 +9,7 @@ Live demo: [neevs.io/aipi540-tabletop-perception](http://neevs.io/aipi540-tablet
 
 ## 1. Problem Statement
 
-Entry-level educational robotics kits (Duke IEE's prototype "Physical Agents OS", Raspberry Pi robot cars, Arduino-based line-followers) need a perception layer. The environment is a tabletop with a small set of common objects (a cup, a phone, a pair of scissors, headphones, a laptop, a stapler) and the robot's job is to identify and avoid them while following a line or pursuing a goal.
+Entry-level educational robotics kits (Raspberry Pi robot cars, Arduino-based line-followers, and a Duke-internal prototype kit discussed in §14) need a perception layer. The environment is a tabletop with a small set of common objects (a cup, a phone, a pair of scissors, headphones, a laptop, a stapler) and the robot's job is to identify and avoid them while following a line or pursuing a goal.
 
 Two deployment constraints define the design space. First, compute is tight: the model runs on a student's laptop browser or an ESP32 microcontroller, not a datacenter. Second, the object vocabulary is partly open: the kit ships with a known closed set, but students bring novel items from their desks that the kit has never seen. A single model rarely satisfies both constraints.
 
@@ -19,7 +19,7 @@ This project ships three classical-to-deep-learning baselines for the closed-set
 
 Training and in-distribution evaluation use a 6-class subset of **Caltech-101** (Fei-Fei, Fergus, Perona, 2004), selected for overlap with the beginner-robot taxonomy. Classes pulled from Caltech-101: `cellphone → cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`. After an 80/20 split within each class, the dataset contains **261 training images and 62 test images**.
 
-Out-of-distribution evaluation uses 10 synthetic top-down tabletop scenes generated programmatically via PIL (reproducible via `duke-ai/validation/scenes/gen.py`) containing curvy lines, colored obstacles, a goal marker, and distractor clutter. These scenes are deliberately stylized (flat colors, 2D rendering) and unlike Caltech-101 photos.
+Out-of-distribution evaluation uses 10 synthetic top-down tabletop scenes generated programmatically via PIL (reproducible via [`data/synthetic_scenes/gen.py`](../data/synthetic_scenes/gen.py)) containing curvy lines, colored obstacles, a goal marker, and distractor clutter. These scenes are deliberately stylized (flat colors, 2D rendering) and unlike Caltech-101 photos.
 
 Real-photo control images (Statue of Liberty, a red apple, a desk scene) are used to confirm the VLM stack operates correctly on natural images, independent of the synthetic OOD failure mode.
 
@@ -142,7 +142,7 @@ Five representative mispredictions from the DL model, with root causes and concr
 
 **(1) False positive: headphone → cell_phone.** The dominant view of headphone_0042 in Caltech-101 is a rounded dark case at an angle that silhouettes similarly to a phone. Root cause: insufficient intra-class view diversity; both classes have a characteristic dark rounded silhouette. Mitigation: add explicit rotated and front-view headphone captures; or include a "class confidence margin" threshold in deployment so ambiguous cases default to "unknown" rather than a wrong label.
 
-**(2) False positive on a benign tool output (confirm-bias on the VLM).** When queried for a `pen` on a desk photo, the VLM drew a box around a hand/mouse region (see `duke-ai/validation/vlm_probe_v2_q4.json`). Root cause: the model satisfies open-vocabulary queries by localizing the most query-consistent region rather than discriminating. Mitigation: include a "is this object actually present?" verification prompt before trusting bounding-box outputs, or require dual confirmation (VLM boxes intersect with classifier-top-3).
+**(2) False positive on a benign tool output (confirm-bias on the VLM).** When queried for a `pen` on a desk photo, the VLM drew a box around a hand/mouse region (see [`results/vlm_ood/vlm_probe_q4.json`](../results/vlm_ood/vlm_probe_q4.json)). Root cause: the model satisfies open-vocabulary queries by localizing the most query-consistent region rather than discriminating. Mitigation: include a "is this object actually present?" verification prompt before trusting bounding-box outputs, or require dual confirmation (VLM boxes intersect with classifier-top-3).
 
 **(3) False negative on a cup under unusual lighting.** A warm-lamp photo of an unusual white cup against a warm-toned counter was classified as `laptop` by the classical model. Root cause: HSV features shift when illuminant changes; the color signal that normally identifies `cup` falls outside the centroid cluster. Mitigation: white-balance normalization upstream of feature extraction; or include illuminant-diverse training images.
 
@@ -160,9 +160,9 @@ Five representative mispredictions from the DL model, with root causes and concr
 
 2. **Out-of-distribution synthetic scenes**: 10 programmatically generated top-down tabletop images with curvy lines, colored obstacles, and goal markers. We probed the VLM with four detection queries per scene (`line`, `obstacle`, `goal marker`, `target`) and graded bounding boxes against ground truth via max-IoU per ground-truth object. Q4 and FP16 decoder quantizations were both tested.
 
-**Headline result.** On synthetic scenes, VLM recall at IoU≥0.3 is **0% for `obstacle`, `goal marker`, and `target`**, and 80% for `line` (the 80% is artifactual: the VLM returns whole-image boxes that trivially contain the ground-truth line). Mean maximum IoU for obstacle is 0.003 — the boxes do not overlap any actual obstacle in any of the 10 scenes. See `duke-ai/validation/grade_report.json`.
+**Headline result.** On synthetic scenes, VLM recall at IoU≥0.3 is **0% for `obstacle`, `goal marker`, and `target`**, and 80% for `line` (the 80% is artifactual: the VLM returns whole-image boxes that trivially contain the ground-truth line). Mean maximum IoU for obstacle is 0.003 — the boxes do not overlap any actual obstacle in any of the 10 scenes. See [`results/vlm_ood/grade_report.json`](../results/vlm_ood/grade_report.json) (regenerate with `python scripts/grade_vlm.py`).
 
-Visual inspection (`duke-ai/validation/overlays/`) confirms that the VLM generates plausible-looking coordinate values (around 0.2, 0.5, 0.7) that do not correspond to actual object positions. The model is satisfying the query shape with guessed coordinates.
+Visual inspection ([`report/figures/vlm_overlays/`](figures/vlm_overlays/)) confirms that the VLM generates plausible-looking coordinate values (around 0.2, 0.5, 0.7) that do not correspond to actual object positions. The model is satisfying the query shape with guessed coordinates.
 
 **Control.** On real photographs (Statue of Liberty, red apple, desk scene), the same VLM with the same prompt produces tight, correct bounding boxes and — notably — correctly refuses absent objects ("There are no cups visible in the image" when `cup` is queried on a photo without a cup).
 
@@ -216,7 +216,7 @@ Potential paid-tier features: cloud-side fine-tuning of the specialist on a teac
 
 **Confirm-bias and false positives.** Section 10 (Error Analysis) documents the VLM's tendency to localize queried objects even when absent. In a safety-critical robotics setting (obstacle avoidance), a false positive on "obstacle" could cause the robot to freeze or reroute incorrectly. Our recommendation to gate VLM outputs through a verifier should be a hard requirement, not a future-work promise, for any deployment where motion is involved.
 
-**Color-hallucination failure mode.** The VLM independently reproduces a documented failure ("brown for gray"; see catwatcher project) where color names are unreliable. This matters for accessibility applications (e.g., blind-user assistance) where color naming is safety-relevant. Any such downstream use would need to route color-specific queries through a dedicated color-calibrated model.
+**Color-hallucination failure mode.** The VLM reproduces a known failure pattern in current sub-1B VLMs in which color names are unreliable (e.g., naming "brown" for a gray object). This matters for accessibility applications (e.g., blind-user assistance) where color naming is safety-relevant. Any such downstream use would need to route color-specific queries through a dedicated color-calibrated model.
 
 **Equity.** Physical robotics kits cost money; a browser-native demo that runs on any laptop lowers the hardware barrier, but the specialist still requires teacher-curated training data. A robust teacher-side workflow is needed to prevent a kit that works for some classrooms' object taxonomies and fails for others. The specialist's transfer-learning design (train a new head in minutes on ~250 images per class) is explicitly an equity choice.
 
@@ -238,4 +238,4 @@ make serve     # local demo on :8088
 
 ## Appendix B: AI Tooling
 
-Claude Code (Opus 4.7) was used extensively during development for dataset-pipeline debugging (fixing torchvision's dead Caltech URL), code generation (naive/classical baseline scaffolds), and report drafting. Specific Claude-generated content is the scaffold of each model script and the initial structure of this report; all content has been reviewed, modified, and tested by the author. Model numbers, experiment design, and failure analysis come from real runs documented in `duke-ai/.claude/working.md` and reproduced in `results/*.json`.
+Claude Code (Opus 4.7) was used extensively during development for dataset-pipeline debugging (fixing torchvision's dead Caltech URL), code generation (naive/classical baseline scaffolds), and report drafting. Specific Claude-generated content is the scaffold of each model script and the initial structure of this report; all content has been reviewed, modified, and tested by the author. Model numbers, experiment design, and failure analysis come from real runs reproduced in `results/*.json` and `results/vlm_ood/*.json`.

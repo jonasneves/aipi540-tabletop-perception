@@ -1,0 +1,427 @@
+{
+  "A": [
+    {
+      "scene": "scenes_real/statue.jpg",
+      "label": "Statue of Liberty",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "statue",
+          "text": "[{\"label\": \"statue\", \"bbox\": [0.3, 0.24, 0.4, 0.67]}]",
+          "dt": 2551.1000003814697,
+          "boxes": [
+            {
+              "label": "statue",
+              "bbox": [
+                0.3,
+                0.24,
+                0.4,
+                0.67
+              ]
+            }
+          ]
+        },
+        {
+          "query": "water",
+          "text": "[{\"label\": \"water\", \"bbox\": [0.0, 0.6, 1.0, 0.99]}]",
+          "dt": 1467.2000007629395,
+          "boxes": [
+            {
+              "label": "water",
+              "bbox": [
+                0,
+                0.6,
+                1,
+                0.99
+              ]
+            }
+          ]
+        },
+        {
+          "query": "clouds",
+          "text": "[{\"label\": \"clouds\", \"bbox\": [0.0, 0.0, 1.0, 0.5]}]",
+          "dt": 1451,
+          "boxes": [
+            {
+              "label": "clouds",
+              "bbox": [
+                0,
+                0,
+                1,
+                0.5
+              ]
+            }
+          ]
+        },
+        {
+          "query": "buildings",
+          "text": "[{\"label\": \"buildings\", \"bbox\": [0.0, 0.3, 1.0, 0.5]}]",
+          "dt": 1454.9000005722046,
+          "boxes": [
+            {
+              "label": "buildings",
+              "bbox": [
+                0,
+                0.3,
+                1,
+                0.5
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "scenes_real/apple.jpg",
+      "label": "Red apple",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "apple",
+          "text": "[{\"label\": \"apple\", \"bbox\": [0.15, 0.13, 0.86, 0.91]}]",
+          "dt": 1466.6999998092651,
+          "boxes": [
+            {
+              "label": "apple",
+              "bbox": [
+                0.15,
+                0.13,
+                0.86,
+                0.91
+              ]
+            }
+          ]
+        },
+        {
+          "query": "stem",
+          "text": "[{\"label\": \"stem\", \"bbox\": [0.16, 0.5, 0.26, 0.66]}]",
+          "dt": 1461.4000005722046,
+          "boxes": [
+            {
+              "label": "stem",
+              "bbox": [
+                0.16,
+                0.5,
+                0.26,
+                0.66
+              ]
+            }
+          ]
+        },
+        {
+          "query": "leaves",
+          "text": "[{\"label\": \"leaves\", \"bbox\": [0.12, 0.45, 0.29, 0.75]}]",
+          "dt": 1499.1000003814697,
+          "boxes": [
+            {
+              "label": "leaves",
+              "bbox": [
+                0.12,
+                0.45,
+                0.29,
+                0.75
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "scenes_real/desk.jpg",
+      "label": "Desk scene",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "laptop",
+          "text": "[{\"label\": \"laptop\", \"bbox\": [0.33, 0.4, 0.86, 0.99]}]",
+          "dt": 1511.6999998092651,
+          "boxes": [
+            {
+              "label": "laptop",
+              "bbox": [
+                0.33,
+                0.4,
+                0.86,
+                0.99
+              ]
+            }
+          ]
+        },
+        {
+          "query": "phone",
+          "text": "[{\"label\": \"phone\", \"bbox\": [0.0, 0.0, 0.3, 0.9]}]",
+          "dt": 1441.5999994277954,
+          "boxes": [
+            {
+              "label": "phone",
+              "bbox": [
+                0,
+                0,
+                0.3,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "query": "pen",
+          "text": "[{\"label\": \"pen\", \"bbox\": [0.61, 0.72, 0.99, 0.99]}]",
+          "dt": 1436.0999994277954,
+          "boxes": [
+            {
+              "label": "pen",
+              "bbox": [
+                0.61,
+                0.72,
+                0.99,
+                0.99
+              ]
+            }
+          ]
+        },
+        {
+          "query": "cup",
+          "text": "[{\"label\": \"cup\", \"bbox\": [0.0, 0.7, 0.2, 0.9]}]",
+          "dt": 1433.8999996185303,
+          "boxes": [
+            {
+              "label": "cup",
+              "bbox": [
+                0,
+                0.7,
+                0.2,
+                0.9
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "B": [
+    {
+      "scene": "scene_00.png",
+      "dtype": "fp16",
+      "text": "The image contains several distinct objects:\n\n1. A pink circle with a white cross in the top-left corner.\n2. A brown square in the top-right corner.\n3. A red circle in the bottom-right corner.\n4. A gray circle in the bottom-center.\n5. A black line forming a zigzag pattern across the image.\n\nThe objects are arranged in a scattered manner, with the pink circle and brown square positioned towards the top-left, the red circle in the bottom-right, and the gray circle in the bottom-center. The black zigzag line runs diagonally across the image, intersecting the other objects.",
+      "dt": 3035.6000003814697
+    },
+    {
+      "scene": "scene_01.png",
+      "dtype": "fp16",
+      "text": "The image displays a simple line graph with the following elements:\n\n1. **X-axis**: The horizontal axis is labeled \"Time\" and spans from approximately 0 to 10, with tick marks at intervals of 2.\n\n2. **Y-axis**: The vertical axis is labeled \"Value\" and ranges from approximately 0 to 5, with tick marks at intervals of 1.\n\n3. **Data Points**: There are three distinct data points plotted on the graph:\n   - A yellow line starting at approximately (0, 2) and ending at (5, 3).\n   - A green square at approximately (2, 3).\n   - A red square at approximately (7, 4).\n\n4. **Grid Lines**: Light gray horizontal and vertical lines provide a grid for reference.\n\nThe graph is minimalistic, with no additional labels or annotations. The data points and axes are clearly defined, and the colors used for the data",
+      "dt": 4216.800000190735
+    },
+    {
+      "scene": "scene_02.png",
+      "dtype": "fp16",
+      "text": "The image contains a series of geometric shapes on a light gray background. The shapes include:\n\n- A small gray circle in the top-left corner.\n- A red square in the bottom-left corner.\n- A yellow line forming a zigzag pattern in the center.\n- A small gray circle in the top-right corner.\n- A red circle with a white plus sign in the bottom-right corner.\n\nThe shapes are arranged in a scattered pattern, with no specific alignment or order.",
+      "dt": 2681.2999992370605
+    },
+    {
+      "scene": "scene_03.png",
+      "dtype": "fp16",
+      "text": "The image contains several distinct objects:\n\n1. A green circle with a white plus sign in the top-right corner.\n2. A black line forming a zigzag pattern across the image.\n3. A series of gray circles scattered throughout the image.\n4. A brown circle located near the bottom-left.\n5. A red circle positioned near the bottom-right.\n\nThe objects are arranged in a somewhat scattered manner, with the green plus sign being the most prominent feature in the top-right corner.",
+      "dt": 2611.2999992370605
+    },
+    {
+      "scene": "scene_04.png",
+      "dtype": "fp16",
+      "text": "The image contains a series of geometric shapes and colors arranged in a pattern. Here's a detailed description of each object and its approximate position:\n\n1. **Green Circle with White Cross**: Located in the top-left quadrant of the image. This is the largest shape and is positioned near the top-center.\n\n2. **Gray Circle**: Positioned in the top-right quadrant. It is smaller than the green circle and is located near the top-center.\n\n3. **Gray Square**: Found in the center-right of the image. It is smaller than the gray circle and is positioned near the top-center.\n\n4. **Blue Square**: Located in the bottom-right quadrant. It is smaller than the gray square and is positioned near the bottom-center.\n\n5. **Red Circle**: Situated in the bottom-left quadrant. It is smaller than the blue square and is positioned near the bottom-center.\n\n6. **Black Curved Line",
+      "dt": 4046
+    },
+    {
+      "scene": "scene_05.png",
+      "dtype": "fp16",
+      "text": "The image contains several distinct objects:\n\n1. A green circle with a white plus sign in the center, located in the top-left quadrant.\n2. A gray circle in the top-right quadrant.\n3. A green circle with a white outline and a white plus sign in the center, located in the top-center area.\n4. A blue circle in the bottom-right quadrant.\n5. A brown circle in the bottom-center area.\n6. A gray circle in the bottom-left quadrant.\n\nThe objects are scattered across a light brown background with horizontal lines.",
+      "dt": 2804.800000190735
+    },
+    {
+      "scene": "scene_06.png",
+      "dtype": "fp16",
+      "text": "The image contains a simple, abstract composition with several distinct objects and their approximate positions:\n\n1. A red circle with a white cross at the top-left corner.\n2. A gray circle near the top-center.\n3. A yellow line that starts from the top-left, curves downward, and ends near the bottom-right.\n4. A blue square located near the top-right corner.\n5. A brown square positioned near the bottom-center.\n\nThe objects are arranged in a scattered manner across the image, with no clear pattern or alignment.",
+      "dt": 2732.5999994277954
+    },
+    {
+      "scene": "scene_07.png",
+      "dtype": "fp16",
+      "text": "The image contains a simple line drawing of a graph with the following objects and their approximate positions:\n\n1. A red circle at the top-left, approximately 10% from the left edge and 30% from the top.\n2. A blue circle at the top-right, approximately 30% from the left edge and 40% from the top.\n3. A pink circle with a white plus sign at the bottom-right, approximately 50% from the left edge and 50% from the top.\n\nThe graph consists of a yellow line that starts at the top-left, rises to a peak, descends, and then rises again, forming a wavy pattern.",
+      "dt": 3251.1000003814697
+    },
+    {
+      "scene": "scene_08.png",
+      "dtype": "fp16",
+      "text": "The image contains several distinct objects:\n\n1. A green circle in the top-left corner, approximately 10% from the left edge.\n2. A blue circle in the top-right corner, approximately 30% from the left edge.\n3. A brown circle in the center, approximately 50% from the left edge.\n4. A yellow line that starts at the top-left, curves downward, and ends at the bottom-right, approximately 80% from the left edge.\n5. A gray circle in the bottom-right corner, approximately 20% from the left edge.",
+      "dt": 2931.4000005722046
+    },
+    {
+      "scene": "scene_09.png",
+      "dtype": "fp16",
+      "text": "The image shows a simple line graph with the following objects and their approximate positions:\n\n1. A pink circle with a white plus sign in the center, located in the top-left quadrant of the graph.\n2. A blue square positioned in the top-right quadrant of the graph.\n3. A white line graph with several peaks and valleys, starting from the bottom-left and moving upwards to the top-right.\n\nThe graph appears to represent some form of data or trend, with the pink circle possibly indicating a starting point or a significant value. The blue square might represent a peak or a high point in the data, while the white line graph shows the overall trend or movement of the data points.",
+      "dt": 3920.8999996185303
+    }
+  ],
+  "C": [
+    {
+      "scene": "scene_00.png",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "line",
+          "text": "[{\"label\": \"line\", \"bbox\": [0.0, 0.0, 1.0, 0.9]}]",
+          "dt": 1523.8000001907349,
+          "boxes": [
+            {
+              "label": "line",
+              "bbox": [
+                0,
+                0,
+                1,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "query": "obstacle",
+          "text": "[{\"label\": \"obstacle\", \"bbox\": [0.6, 0.2, 0.75, 0.35]}]",
+          "dt": 1484.1999998092651,
+          "boxes": [
+            {
+              "label": "obstacle",
+              "bbox": [
+                0.6,
+                0.2,
+                0.75,
+                0.35
+              ]
+            }
+          ]
+        },
+        {
+          "query": "goal marker",
+          "text": "[{\"label\": \"goal marker\", \"bbox\": [0.8, 0.2, 0.9, 0.3]}]",
+          "dt": 1510.0999994277954,
+          "boxes": [
+            {
+              "label": "goal marker",
+              "bbox": [
+                0.8,
+                0.2,
+                0.9,
+                0.3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "scene_04.png",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "line",
+          "text": "[{\"label\": \"line\", \"bbox\": [0.0, 0.0, 1.0, 0.9]}]",
+          "dt": 1487.6999998092651,
+          "boxes": [
+            {
+              "label": "line",
+              "bbox": [
+                0,
+                0,
+                1,
+                0.9
+              ]
+            }
+          ]
+        },
+        {
+          "query": "obstacle",
+          "text": "[{\"label\": \"obstacle\", \"bbox\": [0.5, 0.5, 0.7, 0.7]}]",
+          "dt": 1504.0999994277954,
+          "boxes": [
+            {
+              "label": "obstacle",
+              "bbox": [
+                0.5,
+                0.5,
+                0.7,
+                0.7
+              ]
+            }
+          ]
+        },
+        {
+          "query": "goal marker",
+          "text": "[{\"label\": \"goal marker\", \"bbox\": [0.5, 0.1, 0.6, 0.2]}]",
+          "dt": 1524.3000001907349,
+          "boxes": [
+            {
+              "label": "goal marker",
+              "bbox": [
+                0.5,
+                0.1,
+                0.6,
+                0.2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scene": "scene_08.png",
+      "dtype": "fp16",
+      "results": [
+        {
+          "query": "line",
+          "text": "[{\"label\": \"line\", \"bbox\": [0.0, 0.0, 1.0, 1.0]}]",
+          "dt": 1487.4000005722046,
+          "boxes": [
+            {
+              "label": "line",
+              "bbox": [
+                0,
+                0,
+                1,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "query": "obstacle",
+          "text": "[{\"label\": \"obstacle\", \"bbox\": [0.5, 0.5, 0.6, 0.6]}]",
+          "dt": 1464.6000003814697,
+          "boxes": [
+            {
+              "label": "obstacle",
+              "bbox": [
+                0.5,
+                0.5,
+                0.6,
+                0.6
+              ]
+            }
+          ]
+        },
+        {
+          "query": "goal marker",
+          "text": "[{\"label\": \"goal marker\", \"bbox\": [0.8, 0.12, 0.87, 0.22]}]",
+          "dt": 1491.5,
+          "boxes": [
+            {
+              "label": "goal marker",
+              "bbox": [
+                0.8,
+                0.12,
+                0.87,
+                0.22
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

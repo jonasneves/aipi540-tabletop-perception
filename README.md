@@ -1,18 +1,38 @@
 # Tabletop Perception for Beginner Robot Kits
 
-Vision perception layer for beginner robotics kits. Compares three models — HSV threshold (naive), color-histogram + gradient boosting (classical), and fine-tuned MobileNetV3-small (DL) — against a zero-shot LFM2.5-VL-450M baseline on common tabletop objects. Deployed as an in-browser live demo: point a webcam at a desk, see all three models reason in real time.
+[![Live demo](https://img.shields.io/badge/demo-live-00539B)](https://neevs.io/aipi540-tabletop-perception/)
+[![Duke AIPI 540](https://img.shields.io/badge/Duke-AIPI%20540-012169)](https://masters.pratt.duke.edu/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![ONNX Runtime Web](https://img.shields.io/badge/ONNX%20Runtime%20Web-WebGPU-00539B)](https://onnxruntime.ai/docs/tutorials/web/)
 
-Final project for Duke **AIPI 540: Deep Learning Applications** (Spring 2026). Due 2026-04-21.
+**[Live demo](https://neevs.io/aipi540-tabletop-perception/)** — point a webcam at a desk, watch a specialist and a generalist reason side-by-side. In-browser, no server, no API keys.
 
-## Thesis
+A fine-tuned MobileNetV3-small (2.5M frozen + 6K head) hits **97% top-1 at ~15 ms/frame** on a 6-class tabletop task (`cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`). A 450M-parameter open-vocab VLM (LFM2.5-VL-450M) on the same input runs **~85× slower** at detect (1.3 s/query vs 15 ms/frame) and collapses to 0% recall@IoU≥0.3 on stylized out-of-distribution synthetic scenes — though on natural photos it correctly *refuses* absent-object queries, a property the specialist cannot offer. Production shape: both running at once — specialist on the webcam stream, generalist on typed queries — with the open-vocab tier extending coverage where the closed-set head cannot reach.
 
-A beginner robot kit ships with a closed set of supported objects and a narrow compute budget. A 3M-parameter specialist fine-tuned on that set wins on latency and precision. A 450M VLM wins on flexibility to unseen objects, at the cost of 50× slower inference and a documented confirm-bias failure mode. Choosing between them is a deployment decision, not a benchmark one.
+Choosing between them is a deployment decision, not a benchmark one.
 
-## What you get
+## Results
 
-- **Live web app**: webcam in, three models side-by-side, open-vocab text query, honest refusals. Deployed via GitHub Pages.
-- **Report**: problem statement, data, evaluation strategy, three-model results, focused experiment on scale-vs-task-fit, error analysis, commercial viability, ethics.
-- **Reproducible training**: Colab notebook fine-tunes MobileNetV3-small on a public tabletop dataset and exports ONNX.
+| Tier | Model | Params | Latency | Top-1 |
+|---|---|---|---|---|
+| Naive | HSV threshold | 0 | ~1 ms | 24% |
+| Classical | Color-hist + HOG + GBM | ~2.4K trees | ~40 ms | 76% |
+| DL | MobileNetV3-small fine-tune | 2.5M frozen + 6K head | ~15 ms | **97%** |
+| VLM | LFM2.5-VL-450M zero-shot | 450M | ~1300 ms | open-vocab |
+
+Per-class F1, latency breakdown, and a five-case error analysis: [`report/report.md`](report/report.md).
+
+## Reproduce
+
+```bash
+git clone https://github.com/jonasneves/aipi540-tabletop-perception
+cd aipi540-tabletop-perception
+pip install -r requirements.txt
+make dataset   # downloads + stages Caltech-101, ~2 min
+make eval      # runs all three models + exports ONNX
+make serve     # local demo on :8088
+```
 
 ## Structure
 
@@ -21,14 +41,14 @@ A beginner robot kit ships with a closed set of supported objects and a narrow c
 ├── README.md
 ├── SCOPE.md
 ├── requirements.txt
+├── Makefile               # dataset | eval | sync | serve | deploy
 ├── scripts/
-│   ├── naive.py           # HSV + color heuristic baseline
-│   ├── classical.py       # color-hist + GBM
-│   └── eval.py            # unified evaluation harness
+│   ├── make_dataset.py    # Caltech-101 download + 6-class filter
+│   ├── naive.py           # HSV dominant-hue baseline
+│   ├── classical.py       # color-hist + HOG + GBM
+│   └── train_dl.py        # MobileNetV3-small fine-tune + ONNX export
 ├── notebooks/             # exploration only; not graded
-├── colab/
-│   └── train_mobilenet.ipynb   # runs on T4, exports ONNX
-├── models/                # ONNX artifacts
+├── models/                # ONNX + pickle artifacts
 ├── data/
 │   ├── raw/
 │   └── processed/
