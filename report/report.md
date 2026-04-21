@@ -202,6 +202,8 @@ The deployment decision is not "which model wins." It is "which constraint binds
 
 Duke's Institute for Enterprise Engineering is developing a commercial beginner robotics platform ("Physical Agents OS", grant-funded March 2026, pilots scheduled Fall 2026 through AIPI 510/590). A perception layer that runs in-browser, uses ~6MB of ONNX model, and supports both closed-set speed and open-vocab flexibility maps directly to that platform's roadmap.
 
+*Disclosure: the author is a research assistant at Duke IEE on Physical Agents OS (start date February 2026).*
+
 The specific commercial value comes from two directions. First, students bring their own objects to kits; a pure closed-set model forces IEE to ship larger and larger pretrained models to keep up. A specialist + VLM combo localizes the cost of flexibility to the user's query moment, not to the product's training budget. Second, the live browser-native demo demonstrates that no cloud dependency is required — no per-user API costs, no data-leaving-device privacy questions, no service uptime SLAs in the kit's product plan. These are concrete commercial differentiators against cloud-API-based educational robotics platforms.
 
 Nearest commercial precedent: **VEX Robotics** ships its vision kits with a small custom classifier trained on their own object set; students cannot extend. **iRobot's Root Robot** uses simple color threshold; no object recognition. **Sphero's Indi** uses color cards; no object recognition. The specialist + generalist combination is a genuine gap in this market segment.

@@ -109,20 +109,6 @@
   .top-chip.uncertain .pulse { background: #ffd28a; box-shadow: 0 0 8px #ffd28a; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-  .stage-caption {
-    position: absolute; bottom: 12px; left: 12px; right: 12px;
-    background: rgba(0,0,0,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    color: white; padding: 10px 12px; border-radius: 8px;
-    font-size: 13px; font-style: italic; line-height: 1.4;
-    /* Clamp at 4 lines so the box doesn't bounce as VLM output length varies. */
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   button { font: inherit; padding: 8px 16px; background: var(--navy); color: white; border: 0; border-radius: 8px; cursor: pointer; min-height: 40px; }
   button.ghost { background: white; color: var(--navy); border: 1px solid var(--hatteras); }
@@ -160,9 +146,6 @@
 
   details summary { cursor: pointer; font-weight: 600; color: var(--navy); font-size: 13px; }
   details { font-size: 12px; }
-
-  .footer { color: var(--graphite); font-size: 11px; text-align: center; padding-top: 8px; }
-  .footer a { color: var(--royal); }
 </style>
 </head>
 <body>
@@ -183,7 +166,6 @@
         <div class="label-name" id="chip-name">—</div>
         <div class="label-score" id="chip-score"></div>
       </div>
-      <div class="stage-caption" id="caption" style="display:none"></div>
       <div class="placeholder" id="placeholder"><span>Click <strong>Start camera</strong> to begin.</span></div>
     </div>
     <div class="controls">
@@ -191,7 +173,6 @@
       <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
       <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
-      <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
 
     <div id="phone-panel" class="card" style="display:none; margin-top:4px">
@@ -215,14 +196,12 @@
         <input id="q" type="text" placeholder="e.g. a coffee mug" autocomplete="off" />
         <button type="submit" id="q-submit">Find</button>
       </form>
-      <div class="q-status" id="q-status"><span>idle</span><span id="q-latency"></span></div>
+      <div class="q-status" id="q-status"><span>idle</span></div>
     </div>
 
     <div class="card">
       <h2>Models loaded</h2>
       <div class="model-status" id="model-status">
-        <span>Naive (HSV)</span><span id="naive-status" class="muted">offline eval</span>
-        <span>Classical (colorhist + HOG + GBM)</span><span id="classical-status" class="muted">offline eval</span>
         <span>DL (MobileNetV3 classifier)</span><span id="dl-status" class="pending">not loaded</span>
         <span>VLM (LFM2.5-VL-450M)</span><span id="vlm-status" class="pending">not loaded</span>
       </div>
@@ -234,29 +213,16 @@
         <span>Classifier inference</span><span class="val" id="dl-lat">–</span>
         <span>Classifier throughput</span><span class="val" id="dl-fps">–</span>
         <span>VLM detect</span><span class="val" id="vlm-lat">–</span>
-        <span>VLM narrate</span><span class="val" id="vlm-narr-lat">–</span>
       </div>
     </div>
 
     <details class="card" open>
       <summary>Offline comparison (Caltech-101 test split)</summary>
-      <div class="hint" style="margin-top:6px">Accuracy on held-out 6-class test set, n=62.</div>
+      <div class="hint" style="margin-top:6px">Accuracy on held-out 6-class test set, n=62. Naive, Classical, DL — full per-class F1 inline.</div>
       <ul class="result-list" id="static-results"></ul>
-    </details>
-
-    <details class="card">
-      <summary>About</summary>
-      <div style="color:var(--graphite); margin-top:6px; line-height:1.5">
-        Specialist: MobileNetV3-small head-tune on 261 Caltech-101 images across 6 classes.<br>
-        Generalist: LFM2.5-VL-450M (Q4 decoder) via Transformers.js + WebGPU.<br>
-        Works in Chrome 113+.<br>
-        <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">Code on GitHub</a>
-      </div>
     </details>
   </aside>
 </main>
-
-<div class="footer">Jonas Neves · Duke AIPI 540 · 2026-04-21 · <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">github.com/jonasneves/aipi540-tabletop-perception</a></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -278,13 +244,20 @@ const VLM_MODEL = 'LiquidAI/LFM2.5-VL-450M-ONNX';
 const CONF_MIN   = 0.55;  // top-1 must clear this to display
 const MARGIN_MIN = 0.10;  // top-1 must beat top-2 by at least this
 
+// Display smoothing — the classifier runs at ~70 fps but humans can't parse
+// that rate. EMA_ALPHA=0.2 gives ~5-frame memory (~70 ms settling) so the
+// class label + score don't flip on ordinary webcam jitter. RENDER_MIN_MS
+// caps DOM writes to 4 Hz so the chip + latency cells don't visibly churn.
+const EMA_ALPHA     = 0.2;
+const RENDER_MIN_MS = 250;
+
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam');
-const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
+const loadVlmBtn = $('load-vlm');
 const stage = $('stage');
 const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
-const bboxLayer = $('bboxes'), captionEl = $('caption');
+const bboxLayer = $('bboxes');
 const qStatus = $('q-status');
 
 let stream = null;
@@ -292,18 +265,20 @@ let classifierSession = null;
 let vlm = null;
 let vlmLoading = false;
 let classifierLoopActive = false;
-let narrating = false;
 let dlFrameCount = 0;
 let dlWindowStart = 0;
+let emaProbs = null;   // smoothed per-class probabilities, carried across frames
+let emaLatMs = 0;      // smoothed classifier inference latency
+let lastRender = 0;    // last wall-clock ms we wrote to the chip + lat DOM
+let currentFps = 0;    // last measured classifier throughput, for chip suffix
 
 function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
   el.textContent = text; el.className = cls;
 }
-function setQStatus(text, level = '', latency = '') {
+function setQStatus(text, level = '') {
   qStatus.className = 'q-status ' + level;
   qStatus.children[0].textContent = text;
-  qStatus.children[1].textContent = latency;
 }
 function softmax(arr) {
   const m = Math.max(...arr);
@@ -332,6 +307,7 @@ function stopCam() {
   placeholder.style.display = '';
   topChip.style.display = 'none';
   stage.classList.remove('live');
+  emaProbs = null; emaLatMs = 0; lastRender = 0; currentFps = 0;
 }
 
 async function loadClassifier() {
@@ -390,7 +366,15 @@ async function classifierStep() {
   const dt = performance.now() - t0;
   const logits = Array.from(out.logits.data);
   const probs = softmax(logits);
-  const ranked = probs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
+  // EMA-smooth per-class probabilities so the top-1 label + score don't flip
+  // on frame-to-frame jitter. Carries across ticks via module-scoped emaProbs.
+  if (!emaProbs || emaProbs.length !== probs.length) emaProbs = probs.slice();
+  else for (let i = 0; i < probs.length; i++)
+    emaProbs[i] = EMA_ALPHA * probs[i] + (1 - EMA_ALPHA) * emaProbs[i];
+  emaLatMs = emaLatMs ? EMA_ALPHA * dt + (1 - EMA_ALPHA) * emaLatMs : dt;
+  const ranked = emaProbs
+    .map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p }))
+    .sort((a, b) => b.p - a.p);
   return { ranked, dt };
 }
 
@@ -404,14 +388,18 @@ function renderChip(ranked) {
   const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
   const margin = top1.p - top2.p;
   const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
+  // Real inference rate right on the chip, so the audience doesn't read the
+  // 4 Hz DOM refresh as the actual classifier rate. Suffix stays hidden until
+  // we have a measurement (dlFrameCount needs ~1 s to compute the first fps).
+  const fpsSuffix = currentFps > 0 ? ` · ${currentFps.toFixed(0)}/s` : '';
   if (certain) {
     topChip.classList.remove('uncertain');
     chipName.textContent  = top1.cls;
-    chipScore.textContent = (top1.p * 100).toFixed(0) + '%';
+    chipScore.textContent = (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   } else {
     topChip.classList.add('uncertain');
     chipName.textContent  = 'uncertain';
-    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%';
+    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   }
 }
 
@@ -434,13 +422,20 @@ async function startClassifierLoop() {
       try {
         const r = await classifierStep();
         if (r) {
-          renderChip(r.ranked);
-          $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
+          const now = performance.now();
+          // Throttle DOM writes to ~4 Hz. The classifier still runs full-rate;
+          // the user sees stable text instead of 70 fps churn.
+          if (now - lastRender > RENDER_MIN_MS) {
+            renderChip(r.ranked);
+            $('dl-lat').textContent = emaLatMs.toFixed(0) + ' ms';
+            lastRender = now;
+          }
           dlFrameCount++;
-          const elapsed = performance.now() - dlWindowStart;
+          const elapsed = now - dlWindowStart;
           if (elapsed > 1000) {
-            $('dl-fps').textContent = (dlFrameCount / elapsed * 1000).toFixed(1) + ' fps';
-            dlWindowStart = performance.now();
+            currentFps = dlFrameCount / elapsed * 1000;
+            $('dl-fps').textContent = currentFps.toFixed(1) + ' fps';
+            dlWindowStart = now;
             dlFrameCount = 0;
           }
         }
@@ -468,7 +463,6 @@ async function loadVLM() {
     const processor = await tf.AutoProcessor.from_pretrained(VLM_MODEL);
     vlm = { model, processor, RawImage: tf.RawImage };
     setStatus('vlm-status', 'ready', 'ok');
-    narrateBtn.disabled = false;
     loadVlmBtn.textContent = 'VLM ready';
   } catch (e) {
     setStatus('vlm-status', 'load failed', 'fail');
@@ -515,7 +509,7 @@ function renderDetectOutput(text, query, dt) {
   bboxLayer.innerHTML = '';
   const trimmed = text.trim();
   if (/^NONE\b/i.test(trimmed)) {
-    setQStatus(`no ${query} visible`, 'empty', dt.toFixed(0) + ' ms');
+    setQStatus(`no ${query} visible`, 'empty');
     return;
   }
   const start = text.indexOf('{');
@@ -535,10 +529,10 @@ function renderDetectOutput(text, query, dt) {
   }
   if (!boxes.length) {
     const msg = trimmed.length < 160 ? trimmed : trimmed.slice(0, 100) + '…';
-    setQStatus(msg, 'empty', dt.toFixed(0) + ' ms');
+    setQStatus(msg, 'empty');
     return;
   }
-  setQStatus(`found ${boxes.length}`, 'ok', dt.toFixed(0) + ' ms');
+  setQStatus(`found ${boxes.length}`, 'ok');
   for (const b of boxes) {
     const [x1, y1, x2, y2] = b.bbox;
     const div = document.createElement('div'); div.className = 'bbox';
@@ -547,43 +541,6 @@ function renderDetectOutput(text, query, dt) {
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = b.label;
     div.appendChild(lbl);
     bboxLayer.appendChild(div);
-  }
-}
-
-// VLM narrate — observation directive, list distinct objects only.
-async function vlmNarrate() {
-  if (!vlm) return;
-  const raw = await captureRawImage(); if (!raw) return;
-  const messages = [{
-    role: 'user',
-    content: [
-      { type: 'image' },
-      { type: 'text', text: 'List the distinct physical objects visible in the image, one per line. Skip walls, ceiling, and background.' }
-    ]
-  }];
-  const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
-  const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
-  const t0 = performance.now();
-  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
-  const dt = performance.now() - t0;
-  const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
-  $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
-  captionEl.style.display = '';
-  const full = decoded[0].trim();
-  captionEl.textContent = full;
-  captionEl.title = full;
-}
-
-function toggleNarrate() {
-  narrating = !narrating;
-  narrateBtn.textContent = narrating ? 'Narration: on' : 'Narration: off';
-  if (narrating) narrateLoop();
-  else captionEl.style.display = 'none';
-}
-async function narrateLoop() {
-  while (narrating) {
-    try { await vlmNarrate(); } catch (e) { console.warn(e); }
-    await new Promise(r => setTimeout(r, 500));
   }
 }
 
@@ -663,7 +620,6 @@ function stopPhone() {
 startBtn.addEventListener('click', startCam);
 stopBtn.addEventListener('click', () => { stopPhone(); stopCam(); });
 loadVlmBtn.addEventListener('click', loadVLM);
-narrateBtn.addEventListener('click', toggleNarrate);
 $('q-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('q').value.trim();

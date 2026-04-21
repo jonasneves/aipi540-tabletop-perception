@@ -47,7 +47,6 @@ make serve     # local demo on :8088
 │   ├── naive.py           # HSV dominant-hue baseline
 │   ├── classical.py       # color-hist + HOG + GBM
 │   └── train_dl.py        # MobileNetV3-small fine-tune + ONNX export
-├── notebooks/             # exploration only; not graded
 ├── models/                # ONNX + pickle artifacts
 ├── data/
 │   ├── raw/
