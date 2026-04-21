@@ -196,7 +196,14 @@
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     color: white; padding: 10px 12px; border-radius: 8px;
     font-size: 13px; line-height: 1.45;
-    max-height: 90px; overflow: auto;
+    /* iOS Notifications/Siri pattern — clamp at 4 lines so the box doesn't bounce
+       as VLM output length varies frame to frame. Full text on the title attr. */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ── Controls ───────────────────────────────────────────────── */
@@ -742,7 +749,9 @@ async function vlmNarrate() {
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
   captionEl.style.display = '';
-  captionEl.textContent = decoded[0].trim();
+  const full = decoded[0].trim();
+  captionEl.textContent = full;
+  captionEl.title = full;   // hover shows the full text when the 4-line clamp truncates
 }
 
 function toggleNarrate() {
