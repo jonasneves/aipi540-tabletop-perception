@@ -3,157 +3,393 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tabletop Perception — AIPI 540</title>
-<meta name="description" content="In-browser live demo: a 3M-parameter MobileNetV3-small specialist (97% at ~15 ms/frame) running alongside a 450M-parameter LFM2.5-VL-450M VLM on the same webcam stream. Duke AIPI 540 final." />
+<title>Tabletop Perception — Better Robotics</title>
+<meta name="description" content="In-browser live demo: a 3M-parameter MobileNetV3-small specialist running alongside a 450M-parameter LFM2.5-VL-450M VLM on the same webcam stream. The perception layer for beginner robot kits — offline, zero cloud, zero latency. Duke AIPI 540 final." />
 <meta name="author" content="Jonas Neves" />
-<meta name="theme-color" content="#012169" />
+<meta name="theme-color" content="#0a0c10" />
 <link rel="canonical" href="https://neevs.io/aipi540-tabletop-perception/" />
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'12'%20fill%3D'%23012169'%2F%3E%3Cpath%20d%3D'M14%2044h36M14%2044v-8a10%2010%200%200110-10h16a10%2010%200%200110%2010v8'%20stroke%3D'%23fff'%20stroke-width%3D'4'%20stroke-linecap%3D'round'%20fill%3D'none'%2F%3E%3Ccircle%20cx%3D'32'%20cy%3D'26'%20r%3D'3'%20fill%3D'%23C84E00'%2F%3E%3C%2Fsvg%3E" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Crect%20width%3D'64'%20height%3D'64'%20rx%3D'14'%20fill%3D'%230a0c10'%2F%3E%3Crect%20x%3D'10'%20y%3D'10'%20width%3D'44'%20height%3D'44'%20rx%3D'10'%20fill%3D'none'%20stroke%3D'%232a9fd6'%20stroke-width%3D'3'%2F%3E%3Ccircle%20cx%3D'32'%20cy%3D'32'%20r%3D'6'%20fill%3D'%2334d399'%2F%3E%3C%2Fsvg%3E" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Duke AIPI 540 — Tabletop Perception" />
-<meta property="og:title" content="Tabletop Perception — specialist vs. VLM, live in the browser" />
-<meta property="og:description" content="A 3M-parameter MobileNetV3-small specialist (97%, ~15 ms) running alongside a 450M-parameter LFM2.5-VL-450M VLM on the same webcam stream. Duke AIPI 540 final." />
+<meta property="og:site_name" content="Tabletop Perception" />
+<meta property="og:title" content="Tabletop Perception — specialist + VLM, live in the browser" />
+<meta property="og:description" content="The perception layer for beginner robot kits. On-device. No cloud. No latency. Duke AIPI 540 final." />
 <meta property="og:url" content="https://neevs.io/aipi540-tabletop-perception/" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Tabletop Perception — specialist vs. VLM, live in the browser" />
-<meta name="twitter:description" content="A 3M-parameter specialist (97%, ~15 ms) next to a 450M-parameter VLM (~1.3 s) on the same webcam stream. Duke AIPI 540 final." />
+<meta name="twitter:title" content="Tabletop Perception — specialist + VLM, live in the browser" />
+<meta name="twitter:description" content="A 3M specialist and a 450M VLM running side-by-side on the same webcam stream. On-device. Duke AIPI 540 final." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface-2: #1a1e28;
+    --surface-3: #222836;
+    --border: #2a3040;
+    --border-light: #363e52;
+    --text: #e8eaf0;
+    --text-muted: #7a8299;
+    --text-dim: #4a5270;
+    --accent: #0577B1;
+    --accent-glow: rgba(5, 119, 177, 0.18);
+    --accent-bright: #2a9fd6;
+    --green: #34d399;
+    --green-dim: rgba(52, 211, 153, 0.12);
+    --orange: #E89923;
+    --orange-dim: rgba(232, 153, 35, 0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.12);
     --navy: #012169;
-    --royal: #00539B;
-    --shale: #0577B1;
-    --copper: #C84E00;
-    --whisper: #F3F2F1;
-    --hatteras: #E2E6ED;
-    --graphite: #666666;
-    --ink: #1a1a1a;
-    --success: #1e7d3d;
-    --warn: #C84E00;
-    --fail: #c0392b;
-    --radius: 10px;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: 'Outfit', system-ui, -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
   }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--whisper); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "SF Pro Text", sans-serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-  /* App shell: locked to viewport so nothing overflows the page */
+  /* ── Boot sequence ──────────────────────────────────────────── */
+  .boot-screen {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .boot-screen.hidden { opacity: 0; transform: scale(1.02); pointer-events: none; }
+  .boot-logo {
+    width: 80px; height: 80px; border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--navy));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; color: white;
+    box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(1, 33, 105, 0.25);
+    animation: logoPulse 2s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(1, 33, 105, 0.25); }
+    50%      { box-shadow: 0 0 80px rgba(5, 119, 177, 0.3),  0 0 160px rgba(1, 33, 105, 0.35); }
+  }
+  .boot-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; text-align: center; }
+  .boot-title .subtitle {
+    display: block; font-size: 13px; font-weight: 400;
+    color: var(--text-muted); margin-top: 6px; letter-spacing: 0;
+  }
+  .brand-accent { color: var(--accent-bright); }
+  .boot-steps { display: flex; flex-direction: column; gap: 10px; width: 340px; }
+  .boot-step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-muted);
+    transition: all 0.35s ease;
+  }
+  .boot-step.active { border-color: var(--accent); background: var(--accent-glow); color: var(--text); }
+  .boot-step.done   { border-color: var(--green);  background: var(--green-dim);   color: var(--green); }
+  .boot-step .icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .boot-step.done .icon { background: rgba(52, 211, 153, 0.18); }
+  .boot-skip {
+    margin-top: 6px; background: none; border: none;
+    color: var(--text-dim); font-family: var(--font); font-size: 12px;
+    cursor: pointer; padding: 6px 12px;
+  }
+  .boot-skip:hover { color: var(--text-muted); }
+
+  /* ── App shell ──────────────────────────────────────────────── */
   .app {
     min-height: 100dvh;
     display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 12px;
-    padding: 16px 24px 24px;
-    max-width: 1400px;
-    margin: 0 auto;
+    grid-template-rows: 56px 1fr auto;
+    opacity: 0;
+    transition: opacity 0.4s ease 0.1s;
   }
-  header h1 { color: var(--navy); margin: 0 0 2px; font-size: 20px; letter-spacing: -0.01em; }
-  header .sub { color: var(--graphite); font-size: 13px; }
+  .app.visible { opacity: 1; }
 
+  /* ── Topbar (Control Hub style) ─────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--navy));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: white; flex-shrink: 0;
+  }
+  .topbar-name { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .topbar-tag  {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    background: var(--surface-2); padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .topbar-spacer { flex: 1; }
+  .badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+    padding: 5px 12px; border-radius: 20px;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.offline { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+  .badge.offline .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .badge.warn    { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(232,153,35,0.2); }
+  .badge.warn .dot { background: var(--orange); }
+
+  /* ── Main grid ──────────────────────────────────────────────── */
   main {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    padding: 16px;
     min-height: 0;
   }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  @media (max-width: 940px) { main { grid-template-columns: 1fr; } }
 
-  /* Stage: bounded by viewport so it always fits */
   .stage-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
+  /* ── Stage ──────────────────────────────────────────────────── */
   .stage {
     position: relative;
-    background: #0c0c0c;
+    background: #000;
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
     aspect-ratio: 4 / 3;
-    max-height: calc(100dvh - 180px);
+    max-height: calc(100dvh - 200px);
     width: 100%;
   }
   .stage video, .stage canvas {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
   }
   .stage canvas { pointer-events: none; }
   .stage .placeholder {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    color: #888; font-size: 14px; text-align: center; padding: 20px;
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 14px; text-align: center; padding: 20px;
   }
-  .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
-  .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
-  .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 
-  .top-labels {
-    position: absolute; top: 12px; left: 12px; right: 12px;
-    background: rgba(1, 33, 105, 0.88); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    color: white; padding: 10px 12px; border-radius: 8px; font-size: 13px;
-    display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline;
+  .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
+  .bbox {
+    position: absolute;
+    border: 2px solid var(--accent-bright);
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 0 12px var(--accent-glow);
   }
-  .top-labels .chip { font-weight: 600; display: flex; align-items: baseline; gap: 6px; }
-  .top-labels .chip .score { opacity: 0.75; font-weight: 400; font-variant-numeric: tabular-nums; }
-  .top-labels .muted { opacity: 0.6; font-weight: 400; font-style: italic; }
+  .bbox > .lbl {
+    position: absolute; top: -22px; left: -2px;
+    background: var(--accent-bright); color: var(--bg);
+    padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; font-weight: 600;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  /* Top-of-stage classifier chip (single, decisive) */
+  .top-chip {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .top-chip .label-name {
+    font-family: var(--mono); font-size: 14px; color: var(--accent-bright);
+  }
+  .top-chip .label-score {
+    font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .top-chip.uncertain { border-color: var(--orange); }
+  .top-chip.uncertain .label-name { color: var(--orange); }
+  .top-chip .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+    animation: livePulse 1.6s ease-in-out infinite;
+  }
+  .top-chip.uncertain .pulse { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+  @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   .stage-caption {
     position: absolute; bottom: 12px; left: 12px; right: 12px;
-    background: rgba(0,0,0,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    color: white; padding: 10px 12px; border-radius: 8px;
-    font-size: 13px; font-style: italic; line-height: 1.4;
-    max-height: 80px; overflow: auto;
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-light);
+    color: var(--text); padding: 10px 12px; border-radius: 8px;
+    font-size: 13px; line-height: 1.45;
+    max-height: 90px; overflow: auto;
   }
 
-  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  button { font: inherit; padding: 8px 16px; background: var(--navy); color: white; border: 0; border-radius: 8px; cursor: pointer; min-height: 40px; }
-  button.ghost { background: white; color: var(--navy); border: 1px solid var(--hatteras); }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.ghost:disabled { color: var(--graphite); }
+  /* Active-feed glow on the stage */
+  .stage.live { box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); border-color: var(--accent); }
 
-  /* Right rail */
-  aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 100px); padding-right: 4px; }
-  .card { background: white; border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--hatteras); }
-  .card h2 { margin: 0 0 6px; font-size: 14px; color: var(--navy); font-weight: 600; }
-  .card .hint { font-size: 12px; color: var(--graphite); margin-bottom: 10px; }
+  /* ── Controls ───────────────────────────────────────────────── */
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button {
+    font: 500 13px var(--font);
+    padding: 9px 16px;
+    background: var(--accent); color: white;
+    border: 1px solid var(--accent);
+    border-radius: 8px; cursor: pointer;
+    min-height: 38px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  button:hover:not(:disabled) { background: var(--accent-bright); border-color: var(--accent-bright); }
+  button.ghost {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-light);
+  }
+  button.ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Right rail / cards ─────────────────────────────────────── */
+  aside {
+    display: flex; flex-direction: column; gap: 12px;
+    min-width: 0; overflow-y: auto;
+    max-height: calc(100dvh - 100px); padding-right: 4px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .card-badge {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--accent-bright);
+    background: var(--surface-2);
+    padding: 3px 8px; border-radius: 4px;
+    border: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .card .hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
 
   .query-row { display: flex; gap: 6px; }
-  input[type="text"] { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--hatteras); border-radius: 8px; font: inherit; }
-  input[type="text"]:focus { outline: 2px solid var(--royal); outline-offset: -2px; border-color: var(--royal); }
+  input[type="text"] {
+    flex: 1; min-width: 0;
+    padding: 9px 12px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    font: 14px var(--font);
+  }
+  input[type="text"]::placeholder { color: var(--text-dim); }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -2px; border-color: var(--accent); }
   .query-row button { min-height: 38px; padding: 4px 14px; }
 
-  .q-status { font-size: 12px; color: var(--graphite); margin-top: 8px; min-height: 1.3em; display: flex; justify-content: space-between; gap: 8px; }
-  .q-status.loading { color: var(--royal); }
-  .q-status.ok { color: var(--success); }
-  .q-status.empty { color: var(--warn); }
+  .q-status {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 8px; min-height: 1.3em;
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .q-status.loading { color: var(--accent-bright); }
+  .q-status.ok      { color: var(--green); }
+  .q-status.empty   { color: var(--orange); }
 
-  .model-status { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 12px; color: var(--graphite); }
-  .model-status .ok { color: var(--success); font-weight: 600; }
-  .model-status .pending { color: var(--warn); }
-  .model-status .fail { color: var(--fail); }
-  .model-status .muted { color: var(--graphite); font-style: italic; }
+  .row-list { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 12px; }
+  .row-list > .name { color: var(--text-muted); }
+  .row-list > .stat { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .row-list > .stat.ok      { color: var(--green); }
+  .row-list > .stat.pending { color: var(--orange); }
+  .row-list > .stat.fail    { color: var(--red); }
+  .row-list > .stat.muted   { color: var(--text-dim); font-style: italic; }
 
-  .telemetry { font: 11px/1.5 ui-monospace, "SF Mono", monospace; color: var(--graphite); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
-  .telemetry .val { font-variant-numeric: tabular-nums; color: var(--ink); }
+  .telemetry {
+    font: 11px/1.6 var(--mono); color: var(--text-muted);
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
+  }
+  .telemetry .val { color: var(--text); font-variant-numeric: tabular-nums; }
 
-  .result-list { font-size: 12px; max-height: 220px; overflow: auto; margin: 0; padding-left: 18px; color: var(--graphite); line-height: 1.6; }
-  .result-list li { margin-bottom: 6px; }
-  .result-list small { color: #888; font-size: 11px; }
+  .result-list { font-size: 12px; max-height: 200px; overflow: auto; padding-left: 0; color: var(--text-muted); line-height: 1.6; list-style: none; }
+  .result-list li { margin-bottom: 8px; padding-left: 0; }
+  .result-list strong { color: var(--text); font-weight: 600; }
+  .result-list small { color: var(--text-dim); font-size: 10.5px; font-family: var(--mono); }
 
-  details summary { cursor: pointer; font-weight: 600; color: var(--navy); font-size: 13px; }
+  details summary { cursor: pointer; font-weight: 600; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  details summary::-webkit-details-marker { color: var(--text-dim); }
   details { font-size: 12px; }
+  details a { color: var(--accent-bright); }
 
-  .footer { color: var(--graphite); font-size: 11px; text-align: center; padding-top: 8px; }
-  .footer a { color: var(--royal); }
+  .footer {
+    color: var(--text-dim); font-size: 11px;
+    text-align: center; padding: 14px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .footer a { color: var(--text-muted); }
 </style>
 </head>
 <body>
 
-<div class="app">
-<header>
-  <h1>Tabletop Perception</h1>
-  <div class="sub">A 3M specialist (MobileNetV3-small, fine-tuned) vs. a 450M generalist (LFM2.5-VL-450M). Live on your webcam. Duke AIPI 540 · Spring 2026.</div>
-</header>
+<!-- ── Boot sequence ─────────────────────────────────────────── -->
+<div class="boot-screen" id="bootScreen">
+  <div class="boot-logo">&#9678;</div>
+  <div class="boot-title">
+    Tabletop<span class="brand-accent">Perception</span>
+    <span class="subtitle">Initializing perception layer&hellip;</span>
+  </div>
+  <div class="boot-steps">
+    <div class="boot-step" id="boot-step-1">
+      <div class="icon">&#9678;</div>
+      <div>Loading specialist&nbsp;&middot;&nbsp;MobileNetV3-small (3M)</div>
+    </div>
+    <div class="boot-step" id="boot-step-2">
+      <div class="icon">&#9678;</div>
+      <div>Verifying WebGPU&nbsp;&middot;&nbsp;VLM ready on demand (450M)</div>
+    </div>
+    <div class="boot-step" id="boot-step-3">
+      <div class="icon">&#9678;</div>
+      <div>Perception ready&nbsp;&middot;&nbsp;offline&nbsp;&middot;&nbsp;zero cloud</div>
+    </div>
+  </div>
+  <button class="boot-skip" onclick="window.__skipBoot && window.__skipBoot()">Skip</button>
+</div>
+
+<!-- ── Main app ──────────────────────────────────────────────── -->
+<div class="app" id="app">
+
+<div class="topbar">
+  <div class="topbar-logo">&#9678;</div>
+  <div class="topbar-name">Tabletop<span class="brand-accent">Perception</span></div>
+  <div class="topbar-tag">AIPI&nbsp;540&nbsp;&middot;&nbsp;BetterRobotics</div>
+  <div class="topbar-spacer"></div>
+  <div class="badge offline" id="offlineBadge"><div class="dot"></div><span>On-device&nbsp;&middot;&nbsp;Offline</span></div>
+</div>
 
 <main>
   <section class="stage-col">
     <div class="stage" id="stage">
       <video id="video" playsinline muted></video>
       <div class="bbox-layer" id="bboxes"></div>
-      <div class="top-labels" id="top-labels" style="display:none"></div>
+      <div class="top-chip" id="top-chip" style="display:none">
+        <div class="pulse"></div>
+        <div class="label-name" id="chip-name">—</div>
+        <div class="label-score" id="chip-score"></div>
+      </div>
       <div class="stage-caption" id="caption" style="display:none"></div>
       <div class="placeholder" id="placeholder"><span>Click <strong>Start camera</strong> to begin.</span></div>
     </div>
@@ -161,17 +397,20 @@
       <button id="start-cam">Start camera</button>
       <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
-      <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
+      <button id="load-vlm" class="ghost">Load VLM (450M&nbsp;&middot;&nbsp;one-time)</button>
       <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
 
-    <div id="phone-panel" class="card" style="display:none; margin-top:4px">
-      <h2>Phone camera</h2>
+    <div id="phone-panel" class="card" style="display:none">
+      <div class="card-header">
+        <div class="card-title">Phone camera</div>
+        <div class="card-badge">WebRTC&nbsp;P2P</div>
+      </div>
       <div class="hint" id="phone-hint">Scan this QR with your phone. Keep the phone tab open while demoing.</div>
       <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">
         <div id="phone-qr" style="background:white; padding:8px; border-radius:8px"></div>
         <div style="flex:1; min-width:200px">
-          <div id="phone-url" style="font: 12px ui-monospace, monospace; color:var(--ink); word-break:break-all; margin-bottom:6px"></div>
+          <div id="phone-url" style="font: 11px var(--mono); color:var(--text-muted); word-break:break-all; margin-bottom:6px"></div>
           <div class="q-status" id="phone-status"><span>waiting for phone</span><span></span></div>
         </div>
       </div>
@@ -180,8 +419,11 @@
 
   <aside id="sidebar">
     <div class="card">
-      <h2>Open-vocab query</h2>
-      <div class="hint">Type an object and press Enter or click Find. Try something that isn't on screen — the model should refuse honestly.</div>
+      <div class="card-header">
+        <div class="card-title">Open-vocab query</div>
+        <div class="card-badge">VLM&nbsp;&middot;&nbsp;1.3&nbsp;s</div>
+      </div>
+      <div class="hint">Type an object and press Enter. Try something not in view — the model should refuse honestly.</div>
       <form id="q-form" class="query-row">
         <input id="q" type="text" placeholder="e.g. a coffee mug" autocomplete="off" />
         <button type="submit" id="q-submit">Find</button>
@@ -190,17 +432,23 @@
     </div>
 
     <div class="card">
-      <h2>Models loaded</h2>
-      <div class="model-status" id="model-status">
-        <span>Naive (HSV)</span><span id="naive-status" class="muted">offline eval</span>
-        <span>Classical (colorhist + HOG + GBM)</span><span id="classical-status" class="muted">offline eval</span>
-        <span>DL (MobileNetV3 classifier)</span><span id="dl-status" class="pending">not loaded</span>
-        <span>VLM (LFM2.5-VL-450M)</span><span id="vlm-status" class="pending">not loaded</span>
+      <div class="card-header">
+        <div class="card-title">Models</div>
+        <div class="card-badge">WebGPU</div>
+      </div>
+      <div class="row-list" id="model-status">
+        <span class="name">Naive (HSV)</span><span class="stat muted" id="naive-status">offline eval</span>
+        <span class="name">Classical (HOG + GBM)</span><span class="stat muted" id="classical-status">offline eval</span>
+        <span class="name">DL (MobileNetV3-small)</span><span class="stat pending" id="dl-status">not loaded</span>
+        <span class="name">VLM (LFM2.5-VL-450M)</span><span class="stat pending" id="vlm-status">not loaded</span>
       </div>
     </div>
 
     <div class="card">
-      <h2>Live telemetry</h2>
+      <div class="card-header">
+        <div class="card-title">Live telemetry</div>
+        <div class="card-badge">ms&nbsp;&middot;&nbsp;fps</div>
+      </div>
       <div class="telemetry">
         <span>Classifier inference</span><span class="val" id="dl-lat">–</span>
         <span>Classifier throughput</span><span class="val" id="dl-fps">–</span>
@@ -210,14 +458,14 @@
     </div>
 
     <details class="card" open>
-      <summary>Offline comparison (Caltech-101 test split)</summary>
-      <div class="hint" style="margin-top:6px">Accuracy on held-out 6-class test set, n=62.</div>
+      <summary>Offline comparison&nbsp;&middot;&nbsp;Caltech-101</summary>
+      <div class="hint" style="margin-top:8px">Accuracy on held-out 6-class test set, n=62.</div>
       <ul class="result-list" id="static-results"></ul>
     </details>
 
     <details class="card">
       <summary>About</summary>
-      <div style="color:var(--graphite); margin-top:6px; line-height:1.5">
+      <div style="color:var(--text-muted); margin-top:8px; line-height:1.55">
         Specialist: MobileNetV3-small head-tune on 261 Caltech-101 images across 6 classes.<br>
         Generalist: LFM2.5-VL-450M (Q4 decoder) via Transformers.js + WebGPU.<br>
         Works in Chrome 113+.<br>
@@ -227,7 +475,10 @@
   </aside>
 </main>
 
-<div class="footer">Jonas Neves · Duke AIPI 540 · 2026-04-21 · <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">github.com/jonasneves/aipi540-tabletop-perception</a></div>
+<div class="footer">
+  Jonas Neves&nbsp;&middot;&nbsp;Duke AIPI 540&nbsp;&middot;&nbsp;2026-04-21&nbsp;&middot;&nbsp;
+  <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">github.com/jonasneves/aipi540-tabletop-perception</a>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -236,19 +487,28 @@ import { startDesktop, makeRoomId } from './webrtc.js';
 
 const CLASSIFIER_URL = 'models/classifier.onnx';
 const RESULTS_JSONS = [
-  { key: 'naive', label: 'Naive (HSV)' },
-  { key: 'classical', label: 'Classical (colorhist + HOG + GBM)' },
-  { key: 'dl', label: 'DL (MobileNetV3)' },
+  { key: 'naive',     label: 'Naive (HSV)' },
+  { key: 'classical', label: 'Classical (HOG + GBM)' },
+  { key: 'dl',        label: 'DL (MobileNetV3)' },
 ];
 const CLASSES = ['cell_phone', 'cup', 'headphone', 'laptop', 'scissors', 'stapler'];
 const IMAGENET_MEAN = [0.485, 0.456, 0.406];
-const IMAGENET_STD = [0.229, 0.224, 0.225];
+const IMAGENET_STD  = [0.229, 0.224, 0.225];
 const VLM_MODEL = 'LiquidAI/LFM2.5-VL-450M-ONNX';
+
+// Confidence gate: don't claim a label if the model is unsure.
+// Tuned on observed OOD behavior: classifier confidently emits ~22-40% on
+// non-target inputs; in-distribution it usually clears 0.7+.
+const CONF_MIN     = 0.55;  // top-1 must clear this to display
+const MARGIN_MIN   = 0.10;  // top-1 must beat top-2 by at least this
 
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
-const startBtn = $('start-cam'), stopBtn = $('stop-cam'), loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
-const topLabels = $('top-labels'), bboxLayer = $('bboxes'), captionEl = $('caption');
+const startBtn = $('start-cam'), stopBtn = $('stop-cam');
+const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
+const stage = $('stage');
+const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
+const bboxLayer = $('bboxes'), captionEl = $('caption');
 const qStatus = $('q-status');
 
 let stream = null;
@@ -260,9 +520,9 @@ let narrating = false;
 let dlFrameCount = 0;
 let dlWindowStart = 0;
 
-function setStatus(id, text, cls = '') {
+function setStatus(id, text, cls = 'muted') {
   const el = $(id); if (!el) return;
-  el.textContent = text; el.className = cls;
+  el.textContent = text; el.className = 'stat ' + cls;
 }
 function setQStatus(text, level = '', latency = '') {
   qStatus.className = 'q-status ' + level;
@@ -276,9 +536,13 @@ function softmax(arr) {
   return exps.map(v => v / s);
 }
 
+// ── Camera ─────────────────────────────────────────────────────
 async function startCam() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
   } catch {
     stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
   }
@@ -286,6 +550,7 @@ async function startCam() {
   await video.play();
   placeholder.style.display = 'none';
   startBtn.disabled = true; stopBtn.disabled = false;
+  stage.classList.add('live');
   startClassifierLoop();
 }
 function stopCam() {
@@ -293,9 +558,11 @@ function stopCam() {
   stream = null; classifierLoopActive = false;
   startBtn.disabled = false; stopBtn.disabled = true;
   placeholder.style.display = '';
-  topLabels.style.display = 'none';
+  topChip.style.display = 'none';
+  stage.classList.remove('live');
 }
 
+// ── Classifier ─────────────────────────────────────────────────
 async function loadClassifier() {
   if (classifierSession) return classifierSession;
   try {
@@ -313,7 +580,7 @@ async function loadClassifier() {
     window._ort = ort;
     return classifierSession;
   } catch (e) {
-    setStatus('dl-status', 'load failed — see console', 'fail');
+    setStatus('dl-status', 'load failed', 'fail');
     console.error('Classifier load failed:', e);
     return null;
   }
@@ -335,8 +602,8 @@ function canvasToCHWTensor(canvas) {
   const out = new Float32Array(3 * w * h);
   for (let i = 0; i < w * h; i++) {
     const r = data[i * 4] / 255, g = data[i * 4 + 1] / 255, b = data[i * 4 + 2] / 255;
-    out[i] = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
-    out[i + w * h] = (g - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
+    out[i]             = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
+    out[i + w * h]     = (g - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
     out[i + 2 * w * h] = (b - IMAGENET_MEAN[2]) / IMAGENET_STD[2];
   }
   return out;
@@ -344,8 +611,7 @@ function canvasToCHWTensor(canvas) {
 
 async function classifierStep() {
   if (!classifierSession || !video.videoWidth || !window._ort) return null;
-  const canvas = captureFrame(224);
-  if (!canvas) return null;
+  const canvas = captureFrame(224); if (!canvas) return null;
   const arr = canvasToCHWTensor(canvas);
   const input = new window._ort.Tensor('float32', arr, [1, 3, 224, 224]);
   const t0 = performance.now();
@@ -353,16 +619,31 @@ async function classifierStep() {
   const dt = performance.now() - t0;
   const logits = Array.from(out.logits.data);
   const probs = softmax(logits);
-  const ranked = probs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
-  return { top: ranked.slice(0, 3), dt };
+  const ranked = probs
+    .map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p }))
+    .sort((a, b) => b.p - a.p);
+  return { ranked, dt };
 }
 
-function renderTopLabels(top3, ready) {
-  if (!ready) { topLabels.style.display = 'none'; return; }
-  topLabels.style.display = 'flex';
-  topLabels.innerHTML = top3.map(r =>
-    `<div class="chip">${r.cls}<span class="score">${(r.p * 100).toFixed(0)}%</span></div>`
-  ).join('');
+// Render the top-1 chip with a confidence gate. The classifier was trained
+// on object-centric Caltech-101 photos and does not have a rejection class,
+// so it will always emit a top label. When the top-1 probability is low or
+// it ties with top-2, we display "uncertain" instead of the noisy label.
+function renderChip(ranked) {
+  if (!ranked || !ranked.length) { topChip.style.display = 'none'; return; }
+  topChip.style.display = 'flex';
+  const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
+  const margin = top1.p - top2.p;
+  const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
+  if (certain) {
+    topChip.classList.remove('uncertain');
+    chipName.textContent  = top1.cls;
+    chipScore.textContent = (top1.p * 100).toFixed(0) + '%';
+  } else {
+    topChip.classList.add('uncertain');
+    chipName.textContent  = 'uncertain';
+    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%';
+  }
 }
 
 async function startClassifierLoop() {
@@ -370,8 +651,11 @@ async function startClassifierLoop() {
   classifierLoopActive = true;
   const session = await loadClassifier();
   if (!session) {
-    topLabels.style.display = 'flex';
-    topLabels.innerHTML = '<span class="muted">classifier not available — open-vocab query and narration still work</span>';
+    topChip.style.display = 'flex';
+    topChip.classList.add('uncertain');
+    chipName.textContent  = 'classifier unavailable';
+    chipScore.textContent = 'open-vocab still works';
+    return;
   }
   dlWindowStart = performance.now();
   dlFrameCount = 0;
@@ -381,7 +665,7 @@ async function startClassifierLoop() {
       try {
         const r = await classifierStep();
         if (r) {
-          renderTopLabels(r.top, true);
+          renderChip(r.ranked);
           $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
           dlFrameCount++;
           const elapsed = performance.now() - dlWindowStart;
@@ -398,10 +682,11 @@ async function startClassifierLoop() {
   tick();
 }
 
+// ── VLM ────────────────────────────────────────────────────────
 async function loadVLM() {
   if (vlm || vlmLoading) return;
   vlmLoading = true;
-  setStatus('vlm-status', 'downloading weights…', 'pending');
+  setStatus('vlm-status', 'downloading…', 'pending');
   loadVlmBtn.disabled = true;
   try {
     const tf = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
@@ -409,7 +694,9 @@ async function loadVLM() {
       device: 'webgpu',
       dtype: { vision_encoder: 'fp16', embed_tokens: 'fp16', decoder_model_merged: 'q4' },
       progress_callback: (p) => {
-        if (p.status === 'progress') setStatus('vlm-status', `${(p.file || '').split('/').pop()} ${Math.round(p.progress)}%`, 'pending');
+        if (p.status === 'progress') {
+          setStatus('vlm-status', `${(p.file || '').split('/').pop()} ${Math.round(p.progress)}%`, 'pending');
+        }
       }
     });
     const processor = await tf.AutoProcessor.from_pretrained(VLM_MODEL);
@@ -431,6 +718,10 @@ async function captureRawImage() {
   return new vlm.RawImage(imgData.data, 512, 512, 4);
 }
 
+// VLM detect prompt — observation-directive style. The catwatcher project
+// found that the LFM2.5-VL family hallucinates more readily on yes/no
+// framing than on directives. We force the model to commit to a presence
+// statement first, then to either box or refuse with the literal sentinel.
 async function vlmDetect(query) {
   if (!vlm) {
     setQStatus('loading VLM — please wait', 'loading');
@@ -440,12 +731,16 @@ async function vlmDetect(query) {
   if (!video.videoWidth) { setQStatus('start the camera first', 'empty'); return; }
   const raw = await captureRawImage();
   setQStatus('detecting…', 'loading');
-  const prompt = `Detect all instances of: ${query}. Response must be a JSON array: [{"label": "...", "bbox": [x1, y1, x2, y2]}, ...]. Coordinates are normalized to [0,1]. If not present, say so in plain text.`;
+  const prompt =
+    `You are a careful detector. Look at the image and decide whether a ${query} is actually visible. ` +
+    `If a ${query} IS visible, respond with one JSON object exactly: {"label":"${query}","bbox":[x1,y1,x2,y2]} ` +
+    `with coordinates normalized to [0,1]. ` +
+    `If a ${query} is NOT visible, respond with the single word: NONE`;
   const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: prompt }] }];
   const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
   const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
   const t0 = performance.now();
-  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 128 });
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
   const dt = performance.now() - t0;
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   const text = decoded[0];
@@ -455,19 +750,30 @@ async function vlmDetect(query) {
 
 function renderDetectOutput(text, query, dt) {
   bboxLayer.innerHTML = '';
-  const start = text.indexOf('['); const end = text.lastIndexOf(']');
+  const trimmed = text.trim();
+  // Honest refusal sentinel.
+  if (/^NONE\b/i.test(trimmed)) {
+    setQStatus(`no ${query} visible`, 'empty', dt.toFixed(0) + ' ms');
+    return;
+  }
+  // Try to parse a JSON object or array out of the response.
+  const start = text.indexOf('{');
+  const end   = text.lastIndexOf('}');
   let boxes = [];
   if (start !== -1 && end > start) {
     try {
-      const arr = JSON.parse(text.slice(start, end + 1));
-      if (Array.isArray(arr)) {
-        boxes = arr.filter(d => d && Array.isArray(d.bbox) && d.bbox.length === 4)
-          .map(d => ({ label: d.label || query, bbox: d.bbox.map(v => Math.max(0, Math.min(1, v))) }));
-      }
+      const obj = JSON.parse(text.slice(start, end + 1));
+      const arr = Array.isArray(obj) ? obj : [obj];
+      boxes = arr
+        .filter(d => d && Array.isArray(d.bbox) && d.bbox.length === 4)
+        .map(d => ({
+          label: d.label || query,
+          bbox: d.bbox.map(v => Math.max(0, Math.min(1, v))),
+        }));
     } catch {}
   }
   if (!boxes.length) {
-    const msg = text.length < 160 ? text.trim() : 'no match — ' + text.slice(0, 100).trim() + '…';
+    const msg = trimmed.length < 160 ? trimmed : trimmed.slice(0, 100) + '…';
     setQStatus(msg, 'empty', dt.toFixed(0) + ' ms');
     return;
   }
@@ -475,22 +781,30 @@ function renderDetectOutput(text, query, dt) {
   for (const b of boxes) {
     const [x1, y1, x2, y2] = b.bbox;
     const div = document.createElement('div'); div.className = 'bbox';
-    div.style.left = (x1 * 100) + '%'; div.style.top = (y1 * 100) + '%';
-    div.style.width = ((x2 - x1) * 100) + '%'; div.style.height = ((y2 - y1) * 100) + '%';
+    div.style.left   = (x1 * 100) + '%'; div.style.top    = (y1 * 100) + '%';
+    div.style.width  = ((x2 - x1) * 100) + '%';
+    div.style.height = ((y2 - y1) * 100) + '%';
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = b.label;
     div.appendChild(lbl);
     bboxLayer.appendChild(div);
   }
 }
 
+// VLM narrate — observation directive, no questions, list distinct objects.
 async function vlmNarrate() {
   if (!vlm) return;
   const raw = await captureRawImage(); if (!raw) return;
-  const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: 'Describe this image concisely. Name each distinct object and its approximate position.' }] }];
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'image' },
+      { type: 'text', text: 'List the distinct physical objects visible in the image, one per line. Skip walls, ceiling, and background.' }
+    ]
+  }];
   const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
   const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
   const t0 = performance.now();
-  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 128 });
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
   const dt = performance.now() - t0;
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
@@ -526,11 +840,11 @@ async function loadStaticResults() {
   }
 }
 
-// ── Phone mode ──────────────────────────────────────────────
+// ── Phone mode ─────────────────────────────────────────────────
 let phoneHandle = null;
-const phonePanel = $('phone-panel');
+const phonePanel  = $('phone-panel');
 const phoneStatus = $('phone-status');
-const phoneBtn = $('use-phone');
+const phoneBtn    = $('use-phone');
 
 function setPhoneStatus(txt, level = '') {
   phoneStatus.className = 'q-status ' + level;
@@ -560,6 +874,7 @@ function startPhoneMode() {
       video.play().catch(() => {});
       placeholder.style.display = 'none';
       startBtn.disabled = true; stopBtn.disabled = false;
+      stage.classList.add('live');
       setPhoneStatus('phone connected', 'ok');
       if (!classifierLoopActive) startClassifierLoop();
     },
@@ -573,12 +888,13 @@ function stopPhone() {
   phoneBtn.textContent = 'Use phone camera';
   phoneBtn.classList.add('ghost');
   if (video.srcObject && video.srcObject.getTracks().some(t => t.readyState === 'live')) {
-    // leave stream intact if still active from phone; user can click Stop
+    // leave stream intact if still active from phone
   } else {
     placeholder.style.display = '';
     startBtn.disabled = false; stopBtn.disabled = true;
     classifierLoopActive = false;
-    topLabels.style.display = 'none';
+    topChip.style.display = 'none';
+    stage.classList.remove('live');
   }
 }
 
@@ -594,7 +910,45 @@ $('q-form').addEventListener('submit', (e) => {
 });
 
 loadStaticResults();
-if (!navigator.gpu) setStatus('vlm-status', 'no WebGPU — use Chrome 113+', 'fail');
+if (!navigator.gpu) {
+  setStatus('vlm-status', 'no WebGPU — Chrome 113+', 'fail');
+  document.getElementById('boot-step-2').querySelector('div:last-child').textContent =
+    'WebGPU unavailable · use Chrome 113+';
+}
+
+// ── Boot animation ─────────────────────────────────────────────
+const boot = document.getElementById('bootScreen');
+const app  = document.getElementById('app');
+function advanceBoot(step) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById('boot-step-' + i);
+    if (i < step)  { el.classList.add('done');   el.classList.remove('active'); el.querySelector('.icon').innerHTML = '&check;'; }
+    if (i === step){ el.classList.add('active'); el.classList.remove('done'); }
+    if (i > step)  { el.classList.remove('active', 'done'); }
+  }
+}
+function finishBoot() {
+  boot.classList.add('hidden');
+  app.classList.add('visible');
+  setTimeout(() => boot.remove(), 700);
+}
+window.__skipBoot = finishBoot;
+(async () => {
+  // Step 1: classifier-load proxy (tries warm load in background).
+  advanceBoot(1);
+  loadClassifier();   // fire-and-forget; shows "loading" then "ready" in the side panel
+  await new Promise(r => setTimeout(r, 700));
+  // Step 2: WebGPU check.
+  advanceBoot(2);
+  await new Promise(r => setTimeout(r, 600));
+  // Step 3: ready.
+  advanceBoot(3);
+  await new Promise(r => setTimeout(r, 700));
+  document.getElementById('boot-step-3').classList.add('done');
+  document.getElementById('boot-step-3').querySelector('.icon').innerHTML = '&check;';
+  await new Promise(r => setTimeout(r, 350));
+  finishBoot();
+})();
 </script>
 
 </body>
