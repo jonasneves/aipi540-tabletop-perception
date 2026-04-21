@@ -80,6 +80,21 @@
   /* Active-feed glow */
   .stage.live { box-shadow: 0 0 0 1px var(--royal), 0 0 24px rgba(0, 83, 155, 0.20); }
 
+  /* VLM narration caption — line-clamp so text-length variance doesn't bounce the box */
+  .stage-caption {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    color: white; padding: 10px 12px; border-radius: 8px;
+    font-size: 13px; font-style: italic; line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
   .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
   .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
@@ -220,6 +235,7 @@
           <div class="val" id="qr-val"></div>
         </div>
       </div>
+      <div class="stage-caption" id="caption" style="display:none"></div>
       <div class="placeholder" id="placeholder"><span>Click <strong>Start camera</strong> to begin.</span></div>
     </div>
     <div class="controls">
@@ -227,6 +243,7 @@
       <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
       <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
+      <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
 
     <div id="phone-panel" class="card" style="display:none; margin-top:4px">
@@ -267,6 +284,7 @@
         <span>Classifier inference</span><span class="val" id="dl-lat">–</span>
         <span>Classifier throughput</span><span class="val" id="dl-fps">–</span>
         <span>VLM detect</span><span class="val" id="vlm-lat">–</span>
+        <span>VLM narrate</span><span class="val" id="vlm-narr-lat">–</span>
       </div>
     </div>
 
@@ -308,10 +326,10 @@ const RENDER_MIN_MS = 250;
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam');
-const loadVlmBtn = $('load-vlm');
+const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
 const stage = $('stage');
 const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
-const bboxLayer = $('bboxes');
+const bboxLayer = $('bboxes'), captionEl = $('caption');
 const qStatus = $('q-status');
 
 let stream = null;
@@ -324,6 +342,7 @@ let classifierSession = null;
 let vlm = null;
 let vlmLoading = false;
 let classifierLoopActive = false;
+let narrating = false;
 let dlFrameCount = 0;
 let dlWindowStart = 0;
 let emaProbs = null;   // smoothed per-class probabilities, carried across frames
@@ -441,6 +460,8 @@ function stopCam() {
   topChip.style.display = 'none';
   stage.classList.remove('live');
   emaProbs = null; emaLatMs = 0; lastRender = 0; currentFps = 0;
+  if (narrating) { narrating = false; narrateBtn.textContent = 'Narration: off'; }
+  captionEl.style.display = 'none';
   stopQrLoop();
 }
 
@@ -598,6 +619,7 @@ async function loadVLM() {
     vlm = { model, processor, RawImage: tf.RawImage };
     setStatus('vlm-status', 'ready', 'ok');
     loadVlmBtn.textContent = 'VLM ready';
+    narrateBtn.disabled = false;
   } catch (e) {
     setStatus('vlm-status', 'load failed', 'fail');
     loadVlmBtn.disabled = false;
@@ -675,6 +697,46 @@ function renderDetectOutput(text, query, dt) {
     const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = b.label;
     div.appendChild(lbl);
     bboxLayer.appendChild(div);
+  }
+}
+
+// VLM narrate — observation directive; list distinct physical objects only,
+// skipping walls/ceiling/background. Off by default; toggled via button. Note
+// that running narration alongside the classifier loop shares GPU, so live
+// fps drops while this is on — acceptable because it's opt-in.
+async function vlmNarrate() {
+  if (!vlm) return;
+  const raw = await captureRawImage(); if (!raw) return;
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'image' },
+      { type: 'text', text: 'List the distinct physical objects visible in the image, one per line. Skip walls, ceiling, and background.' }
+    ]
+  }];
+  const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
+  const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
+  const t0 = performance.now();
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
+  const dt = performance.now() - t0;
+  const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
+  $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
+  captionEl.style.display = '';
+  const full = decoded[0].trim();
+  captionEl.textContent = full;
+  captionEl.title = full;
+}
+
+function toggleNarrate() {
+  narrating = !narrating;
+  narrateBtn.textContent = narrating ? 'Narration: on' : 'Narration: off';
+  if (narrating) narrateLoop();
+  else captionEl.style.display = 'none';
+}
+async function narrateLoop() {
+  while (narrating) {
+    try { await vlmNarrate(); } catch (e) { console.warn(e); }
+    await new Promise(r => setTimeout(r, 500));
   }
 }
 
@@ -756,6 +818,7 @@ function stopPhone() {
 startBtn.addEventListener('click', startCam);
 stopBtn.addEventListener('click', () => { stopPhone(); stopCam(); });
 loadVlmBtn.addEventListener('click', loadVLM);
+narrateBtn.addEventListener('click', toggleNarrate);
 $('q-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('q').value.trim();
