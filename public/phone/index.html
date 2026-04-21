@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Phone camera — Tabletop Perception</title>
+<style>
+  :root { --navy: #012169; --ink: #1a1a1a; --bg: #0c0c0c; --whisper: #F3F2F1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: white; font: 15px/1.45 system-ui, -apple-system, sans-serif; min-height: 100dvh; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 20px; }
+  h1 { color: white; margin: 0 0 4px; font-size: 18px; }
+  .sub { color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 16px; }
+  .video-wrap { position: relative; width: 100%; aspect-ratio: 3/4; background: #000; border-radius: 12px; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .status { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(0,0,0,0.55); backdrop-filter: blur(16px); padding: 8px 12px; border-radius: 8px; font-size: 12px; }
+  button { font: inherit; padding: 12px 20px; min-height: 48px; background: var(--navy); color: white; border: 0; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 14px; font-weight: 600; }
+  button:disabled { opacity: 0.5; }
+  .note { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 12px; text-align: center; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Phone camera</h1>
+  <div class="sub">Streams your rear camera to the desktop demo. Keep this tab open while demoing.</div>
+
+  <div class="video-wrap">
+    <video id="preview" playsinline muted autoplay></video>
+    <div class="status" id="status">tap Start to begin</div>
+  </div>
+
+  <button id="start">Start camera and connect</button>
+
+  <div class="note">Works best on Chrome or Safari. Keep the screen awake during the demo.</div>
+</div>
+
+<script type="module">
+import { startPhone } from '../webrtc.js';
+
+const params = new URLSearchParams(location.search);
+const room = params.get('peer') || params.get('room');
+const statusEl = document.getElementById('status');
+const btn = document.getElementById('start');
+const video = document.getElementById('preview');
+
+function setStatus(t) { statusEl.textContent = t; }
+
+if (!room) {
+  setStatus('no room id in URL — go back to the desktop demo');
+  btn.disabled = true;
+}
+
+btn.addEventListener('click', async () => {
+  btn.disabled = true;
+  setStatus('requesting camera...');
+  try {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+    } catch {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
+    video.srcObject = stream;
+    setStatus('connecting...');
+    const handle = await startPhone(room, stream, {
+      onStatus: (s) => setStatus('webrtc: ' + s),
+    });
+    window._phone = handle;
+    btn.textContent = 'Connected — keep tab open';
+  } catch (e) {
+    setStatus('error: ' + e.message);
+    btn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

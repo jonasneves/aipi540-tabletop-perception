@@ -147,13 +147,26 @@
     </div>
     <div class="controls">
       <button id="start-cam">Start camera</button>
+      <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
       <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
       <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
+
+    <div id="phone-panel" class="card" style="display:none; margin-top:4px">
+      <h2>Phone camera</h2>
+      <div class="hint" id="phone-hint">Scan this QR with your phone. Keep the phone tab open while demoing.</div>
+      <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">
+        <div id="phone-qr" style="background:white; padding:8px; border-radius:8px"></div>
+        <div style="flex:1; min-width:200px">
+          <div id="phone-url" style="font: 12px ui-monospace, monospace; color:var(--ink); word-break:break-all; margin-bottom:6px"></div>
+          <div class="q-status" id="phone-status"><span>waiting for phone</span><span></span></div>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <aside>
+  <aside id="sidebar">
     <div class="card">
       <h2>Open-vocab query</h2>
       <div class="hint">Type an object and press Enter or click Find. Try something that isn't on screen — the model should refuse honestly.</div>
@@ -205,7 +218,10 @@
 <div class="footer">Jonas Neves · Duke AIPI 540 · 2026-04-21 · <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">github.com/jonasneves/aipi540-tabletop-perception</a></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script type="module">
+import { startDesktop, makeRoomId } from './webrtc.js';
+
 const CLASSIFIER_URL = 'models/classifier.onnx';
 const RESULTS_JSONS = [
   { key: 'naive', label: 'Naive (HSV)' },
@@ -498,8 +514,64 @@ async function loadStaticResults() {
   }
 }
 
+// ── Phone mode ──────────────────────────────────────────────
+let phoneHandle = null;
+const phonePanel = $('phone-panel');
+const phoneStatus = $('phone-status');
+const phoneBtn = $('use-phone');
+
+function setPhoneStatus(txt, level = '') {
+  phoneStatus.className = 'q-status ' + level;
+  phoneStatus.children[0].textContent = txt;
+}
+
+phoneBtn.addEventListener('click', () => {
+  if (phoneHandle) { stopPhone(); return; }
+  startPhoneMode();
+});
+
+function startPhoneMode() {
+  const room = makeRoomId();
+  const phoneUrl = `${location.origin}${location.pathname.replace(/\/$/, '')}/phone/?peer=${room}`;
+  phonePanel.style.display = '';
+  $('phone-url').textContent = phoneUrl;
+  const qrEl = $('phone-qr'); qrEl.innerHTML = '';
+  new QRCode(qrEl, { text: phoneUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+  setPhoneStatus('waiting for phone', '');
+  phoneBtn.textContent = 'Cancel phone mode';
+  phoneBtn.classList.remove('ghost');
+
+  phoneHandle = startDesktop(room, {
+    onStatus: (s) => setPhoneStatus('webrtc: ' + s, ''),
+    onRemoteStream: (stream) => {
+      video.srcObject = stream;
+      video.play().catch(() => {});
+      placeholder.style.display = 'none';
+      startBtn.disabled = true; stopBtn.disabled = false;
+      setPhoneStatus('phone connected', 'ok');
+      if (!classifierLoopActive) startClassifierLoop();
+    },
+    onConnected: () => setPhoneStatus('connected (P2P)', 'ok'),
+  });
+}
+
+function stopPhone() {
+  if (phoneHandle) { phoneHandle.stop(); phoneHandle = null; }
+  phonePanel.style.display = 'none';
+  phoneBtn.textContent = 'Use phone camera';
+  phoneBtn.classList.add('ghost');
+  if (video.srcObject && video.srcObject.getTracks().some(t => t.readyState === 'live')) {
+    // leave stream intact if still active from phone; user can click Stop
+  } else {
+    placeholder.style.display = '';
+    startBtn.disabled = false; stopBtn.disabled = true;
+    classifierLoopActive = false;
+    topLabels.style.display = 'none';
+  }
+}
+
 startBtn.addEventListener('click', startCam);
-stopBtn.addEventListener('click', stopCam);
+stopBtn.addEventListener('click', () => { stopPhone(); stopCam(); });
 loadVlmBtn.addEventListener('click', loadVLM);
 narrateBtn.addEventListener('click', toggleNarrate);
 $('q-form').addEventListener('submit', (e) => {
