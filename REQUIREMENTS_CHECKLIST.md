@@ -1,6 +1,6 @@
 # AIPI 540 Rubric Checklist
 
-Maps each required element of the Canvas + syllabus rubric to where it lives in this repository.
+> **Audience:** AIPI 540 grading staff (Duke, Spring 2026). This file maps each rubric element to the specific artifact in this repository. General readers should start with [`README.md`](README.md).
 
 ## Three required models
 

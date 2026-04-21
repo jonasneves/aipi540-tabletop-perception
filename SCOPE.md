@@ -1,12 +1,14 @@
 # Scope — Tabletop Perception
 
+> **Audience:** internal planning doc (author + collaborators). For a project overview, see [`README.md`](README.md). For the written submission, see [`report/report.md`](report/report.md). This file captures the locked scope and demo plan and may use shorthand that isn't defined elsewhere.
+
 ## Thesis
 
 Beginner robotics kits need vision. Closed-set specialists are fast and narrow; open-vocab VLMs are flexible and slow. Chart the trade-off on a concrete tabletop task.
 
 ## Task
 
-Given a top-down or slight-angle photo of a tabletop, localize and classify objects from a fixed taxonomy (cup, bottle, book, cell_phone, keyboard, laptop, mouse) *and* demonstrate open-vocab detection via VLM on the same input.
+Given a top-down or slight-angle photo of a tabletop, classify objects from a fixed 6-class taxonomy (`cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`) *and* demonstrate open-vocab detection via VLM on the same input. Taxonomy chosen to match Caltech-101 source classes.
 
 ## Three models (540 rubric)
 
@@ -20,7 +22,7 @@ Given a top-down or slight-angle photo of a tabletop, localize and classify obje
 
 **Scale vs. task-fit.** LFM2.5-VL-450M as a zero-shot open-vocab baseline. Compare:
 
-1. Closed-set accuracy (same 7 classes): MobileNetV3-small vs VLM-450M
+1. Closed-set accuracy (same 6 classes): MobileNetV3-small vs VLM-450M
 2. Inference latency: both on MacBook browser
 3. Open-vocab recall: VLM only (MobileNet can't answer this)
 
@@ -35,7 +37,7 @@ Expected result: MobileNet wins closed-set by large margins on latency and accur
 ## App
 
 Single-page `public/index.html`:
-- Webcam input (phone via catwatcher-style WebRTC, or laptop camera directly)
+- Webcam input (phone via WebRTC bridge, or laptop camera directly)
 - Live MobileNet inference at ~30fps with bounding boxes
 - Live VLM detection at ~0.7Hz with open-vocab text query
 - Live narration side panel (VLM describe mode) every ~2s
@@ -61,7 +63,7 @@ In-person classroom demo, 5 min:
 
 ## Known risks + mitigations
 
-- **VLM confirm-bias**: open-vocab model matches the query rather than discriminates (documented in `../duke-ai/.claude/working.md`). Mitigation: one absent-object query in the demo script shows the refusal beat.
+- **VLM confirm-bias**: open-vocab model matches the query rather than discriminates (evidence: `results/vlm_ood/grade_report.json`). Mitigation: one absent-object query in the demo script shows the refusal beat.
 - **Classroom Wi-Fi**: WebRTC needs `signal.neevs.io`. If flaky, fallback to laptop webcam directly.
-- **VLM color hallucination**: says "brown" for gray (independently reproduced; also documented in catwatcher). Included in Limitations section.
+- **VLM color hallucination**: says "brown" for gray. Included in Limitations section.
 - **No hardware robot**: paper demo only. Not required by rubric.
