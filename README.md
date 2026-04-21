@@ -1,10 +1,10 @@
 # Tabletop Perception for Beginner Robot Kits
 
 [![Live demo](https://img.shields.io/badge/demo-live-00539B)](https://neevs.io/aipi540-tabletop-perception/)
+[![Duke AIPI 540](https://img.shields.io/badge/Duke-AIPI%20540-012169)](https://masters.pratt.duke.edu/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX%20Runtime%20Web-WebGPU-00539B)](https://onnxruntime.ai/docs/tutorials/web/)
-[![Duke AIPI 540](https://img.shields.io/badge/Duke-AIPI%20540-012169)](https://ai.meng.duke.edu/)
 
 **[Live demo](https://neevs.io/aipi540-tabletop-perception/)** — point a webcam at a desk, watch a specialist and a generalist reason side-by-side. In-browser, no server, no API keys.
 
