@@ -23,12 +23,6 @@ Choosing between them is a deployment decision, not a benchmark one.
 
 Per-class F1, latency breakdown, and a five-case error analysis: [`report/report.md`](report/report.md).
 
-## What you get
-
-- **Live demo** — webcam in, specialist and VLM both running in-browser via ONNX Runtime Web + WebGPU. No server, no API keys.
-- **Report** — 15 sections: problem, data, models, experiment, error analysis, commercial viability, ethics. See [`report/report.md`](report/report.md).
-- **Reproducible training** — `scripts/train_dl.py` fine-tunes MobileNetV3-small on Caltech-101 and exports ONNX. Run end-to-end via `make eval`.
-
 ## Reproduce
 
 ```bash
