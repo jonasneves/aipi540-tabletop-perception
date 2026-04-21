@@ -243,6 +243,7 @@
       <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
       <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
+      <button id="verify-btn" class="ghost" disabled>Verify with VLM</button>
       <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
 
@@ -326,7 +327,7 @@ const RENDER_MIN_MS = 250;
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam');
-const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
+const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle'), verifyBtn = $('verify-btn');
 const stage = $('stage');
 const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
 const bboxLayer = $('bboxes'), captionEl = $('caption');
@@ -349,6 +350,7 @@ let emaProbs = null;   // smoothed per-class probabilities, carried across frame
 let emaLatMs = 0;      // smoothed classifier inference latency
 let lastRender = 0;    // last wall-clock ms we wrote to the chip + lat DOM
 let currentFps = 0;    // last measured classifier throughput, for chip suffix
+let verifyOverride = null;  // { label, verdict: 'confirmed' | 'disagrees' } from VLM cross-check
 
 function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
@@ -543,10 +545,26 @@ function renderChip(ranked) {
   const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
   const margin = top1.p - top2.p;
   const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
-  // Real inference rate right on the chip, so the audience doesn't read the
-  // 4 Hz DOM refresh as the actual classifier rate. Suffix stays hidden until
-  // we have a measurement (dlFrameCount needs ~1 s to compute the first fps).
   const fpsSuffix = currentFps > 0 ? ` · ${currentFps.toFixed(0)}/s` : '';
+
+  // VLM cross-check takes precedence over the confidence gate. If the VLM
+  // said the label isn't actually present, show an amber "VLM disagrees" chip
+  // regardless of classifier confidence. If the VLM confirmed, show a tick.
+  if (verifyOverride && verifyOverride.label === top1.cls) {
+    if (verifyOverride.verdict === 'disagrees') {
+      topChip.classList.add('uncertain');
+      chipName.textContent  = 'VLM disagrees';
+      chipScore.textContent = `classifier: ${top1.cls} ${(top1.p * 100).toFixed(0)}%`;
+      return;
+    }
+    if (verifyOverride.verdict === 'confirmed') {
+      topChip.classList.remove('uncertain');
+      chipName.textContent  = top1.cls + ' ✓';
+      chipScore.textContent = (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
+      return;
+    }
+  }
+
   if (certain) {
     topChip.classList.remove('uncertain');
     chipName.textContent  = top1.cls;
@@ -556,6 +574,40 @@ function renderChip(ranked) {
     chipName.textContent  = 'uncertain';
     chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   }
+}
+
+// VLM cross-check: ask the VLM whether the classifier's top-1 label is
+// actually visible in the current frame. NONE → flip the chip to amber
+// ("VLM disagrees"). YES → tick the chip. This is the two-tier architecture
+// s5 names as "one shape worth exploring" — wired as a user-initiated beat
+// so it doesn't spam the VLM on every frame.
+async function verifyClassifier() {
+  if (!vlm || !video.videoWidth || !classifierLoopActive || !emaProbs) return;
+  const ranked = emaProbs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
+  const top1 = ranked[0];
+  if (!top1) return;
+
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+
+  try {
+    const raw = await captureRawImage();
+    const niceLabel = top1.cls.replace(/_/g, ' ');
+    const prompt = `Look carefully at the image. Is a ${niceLabel} actually visible in it? Answer with exactly one word: YES or NONE.`;
+    const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: prompt }] }];
+    const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
+    const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
+    const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 16 });
+    const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
+    const result = decoded[0].trim();
+    const verdict = /^NONE\b/i.test(result) ? 'disagrees' : 'confirmed';
+    verifyOverride = { label: top1.cls, verdict };
+    // Auto-clear so the chip returns to normal once the audience has seen the beat.
+    setTimeout(() => { verifyOverride = null; }, verdict === 'disagrees' ? 6000 : 3500);
+  } catch (e) { console.warn('verify failed:', e); }
+
+  verifyBtn.disabled = false;
+  verifyBtn.textContent = 'Verify with VLM';
 }
 
 async function startClassifierLoop() {
@@ -620,6 +672,7 @@ async function loadVLM() {
     setStatus('vlm-status', 'ready', 'ok');
     loadVlmBtn.textContent = 'VLM ready';
     narrateBtn.disabled = false;
+    verifyBtn.disabled = false;
   } catch (e) {
     setStatus('vlm-status', 'load failed', 'fail');
     loadVlmBtn.disabled = false;
@@ -819,6 +872,7 @@ startBtn.addEventListener('click', startCam);
 stopBtn.addEventListener('click', () => { stopPhone(); stopCam(); });
 loadVlmBtn.addEventListener('click', loadVLM);
 narrateBtn.addEventListener('click', toggleNarrate);
+verifyBtn.addEventListener('click', verifyClassifier);
 $('q-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('q').value.trim();

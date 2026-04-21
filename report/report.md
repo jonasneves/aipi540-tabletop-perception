@@ -19,7 +19,7 @@ This project ships three classical-to-deep-learning baselines for the closed-set
 
 Training and in-distribution evaluation use a 6-class subset of **Caltech-101** (Fei-Fei, Fergus, Perona, 2004), selected for overlap with the beginner-robot taxonomy. Classes pulled from Caltech-101: `cellphone → cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`. After an 80/20 split within each class, the dataset contains **261 training images and 62 test images**.
 
-Out-of-distribution evaluation uses 10 synthetic top-down tabletop scenes generated programmatically via PIL (reproducible via [`data/synthetic_scenes/gen.py`](../data/synthetic_scenes/gen.py)) containing curvy lines, colored obstacles, a goal marker, and distractor clutter. These scenes are deliberately stylized (flat colors, 2D rendering) and unlike Caltech-101 photos.
+Out-of-distribution evaluation uses 10 synthetic top-down tabletop scenes generated programmatically via PIL (reproducible via [`data/synthetic_scenes/gen.py`](https://github.com/jonasneves/aipi540-tabletop-perception/blob/main/data/synthetic_scenes/gen.py)) containing curvy lines, colored obstacles, a goal marker, and distractor clutter. These scenes are deliberately stylized (flat colors, 2D rendering) and unlike Caltech-101 photos.
 
 Real-photo control images (Statue of Liberty, a red apple, a desk scene) are used to confirm the VLM stack operates correctly on natural images, independent of the synthetic OOD failure mode.
 
@@ -138,17 +138,19 @@ The specialist is ~85× faster than the generalist.
 
 ## 10. Error Analysis
 
-Five representative mispredictions from the DL model, with root causes and concrete mitigations.
+Six representative mispredictions from the DL model, with root causes and concrete mitigations.
 
 **(1) False positive: headphone → cell_phone.** The dominant view of headphone_0042 in Caltech-101 is a rounded dark case at an angle that silhouettes similarly to a phone. Root cause: insufficient intra-class view diversity; both classes have a characteristic dark rounded silhouette. Mitigation: add explicit rotated and front-view headphone captures; or include a "class confidence margin" threshold in deployment so ambiguous cases default to "unknown" rather than a wrong label.
 
-**(2) False positive on a benign tool output (confirm-bias on the VLM).** When queried for a `pen` on a desk photo, the VLM drew a box around a hand/mouse region (see [`results/vlm_ood/vlm_probe_q4.json`](../results/vlm_ood/vlm_probe_q4.json)). Root cause: the model satisfies open-vocabulary queries by localizing the most query-consistent region rather than discriminating. Mitigation: include a "is this object actually present?" verification prompt before trusting bounding-box outputs, or require dual confirmation (VLM boxes intersect with classifier-top-3).
+**(2) False positive on a benign tool output (confirm-bias on the VLM).** When queried for a `pen` on a desk photo, the VLM drew a box around a hand/mouse region (see [`results/vlm_ood/vlm_probe_q4.json`](https://github.com/jonasneves/aipi540-tabletop-perception/blob/main/results/vlm_ood/vlm_probe_q4.json)). Root cause: the model satisfies open-vocabulary queries by localizing the most query-consistent region rather than discriminating. Mitigation: include a "is this object actually present?" verification prompt before trusting bounding-box outputs, or require dual confirmation (VLM boxes intersect with classifier-top-3).
 
 **(3) False negative on a cup under unusual lighting.** A warm-lamp photo of an unusual white cup against a warm-toned counter was classified as `laptop` by the classical model. Root cause: HSV features shift when illuminant changes; the color signal that normally identifies `cup` falls outside the centroid cluster. Mitigation: white-balance normalization upstream of feature extraction; or include illuminant-diverse training images.
 
 **(4) Classical-vs-DL disagreement on a thin-handled pair of scissors.** Classical predicted `stapler` (0.38 confidence), DL predicted `scissors` (0.71). DL was correct. Root cause: HOG features miss the distinctive thin-handle silhouette because 16×16 cells blur away fine geometry. Mitigation: lower HOG cell size (8×8) at the cost of feature-vector bloat, or include shape-specific hand-crafted features.
 
 **(5) Confident wrong prediction: DL calls a stapler "cup" at 0.88.** The stapler is photographed from directly above with its mouth open, exposing a cup-like rounded cavity. Root cause: bird's-eye photography is under-represented in the Caltech-101 stapler set; the top-down view has more in common with a cup's interior. Mitigation: augment training with top-down stapler views; or gate deployment on the robot's expected viewpoint (side-on when following a line).
+
+**(6) Confident wrong predictions on out-of-distribution objects.** Post-training, we tested three objects the kit was never trained on: a pen, a pair of sunglasses, and a small toy car. The DL model confidently classified **pen → stapler** and **sunglasses → stapler**, and **toy car → cup**. Root cause: MobileNetV3-small has no rejection class, so every input must be mapped to one of the six trained labels. Stapler (F1 = 1.00), cell_phone (1.00), and laptop (1.00) form the strongest internal representations in the fine-tuned head, and OOD inputs get attracted to them by feature-space proximity. This means the headline **97% top-1 accuracy is a closed-set in-distribution number**, not a deployment-grade claim — a kit facing novel user objects without a rejection mechanism will emit confident wrong labels by construction, not by bug. Mitigation (the architecture the live demo now implements): pair the classifier with on-demand VLM verification — ask *"is a {predicted_label} actually visible?"* on user request; if the VLM answers NONE, override the chip to `uncertain`. The closed-set F1s remain legitimate for in-distribution evaluation; the two-tier check is what extends the system's honesty to deployment-style inputs.
 
 ## 11. Experiment Write-Up
 
@@ -160,9 +162,9 @@ Five representative mispredictions from the DL model, with root causes and concr
 
 2. **Out-of-distribution synthetic scenes**: 10 programmatically generated top-down tabletop images with curvy lines, colored obstacles, and goal markers. We probed the VLM with four detection queries per scene (`line`, `obstacle`, `goal marker`, `target`) and graded bounding boxes against ground truth via max-IoU per ground-truth object. Q4 and FP16 decoder quantizations were both tested.
 
-**Headline result.** On synthetic scenes, VLM recall at IoU≥0.3 is **0% for `obstacle`, `goal marker`, and `target`**, and 80% for `line` (the 80% is artifactual: the VLM returns whole-image boxes that trivially contain the ground-truth line). Mean maximum IoU for obstacle is 0.003 — the boxes do not overlap any actual obstacle in any of the 10 scenes. See [`results/vlm_ood/grade_report.json`](../results/vlm_ood/grade_report.json) (regenerate with `python scripts/grade_vlm.py`).
+**Headline result.** On synthetic scenes, VLM recall at IoU≥0.3 is **0% for `obstacle`, `goal marker`, and `target`**, and 80% for `line` (the 80% is artifactual: the VLM returns whole-image boxes that trivially contain the ground-truth line). Mean maximum IoU for obstacle is 0.003 — the boxes do not overlap any actual obstacle in any of the 10 scenes. See [`results/vlm_ood/grade_report.json`](https://github.com/jonasneves/aipi540-tabletop-perception/blob/main/results/vlm_ood/grade_report.json) (regenerate with `python scripts/grade_vlm.py`).
 
-Visual inspection ([`report/figures/vlm_overlays/`](figures/vlm_overlays/)) confirms that the VLM generates plausible-looking coordinate values (around 0.2, 0.5, 0.7) that do not correspond to actual object positions. The model is satisfying the query shape with guessed coordinates.
+Visual inspection ([`report/figures/vlm_overlays/`](https://github.com/jonasneves/aipi540-tabletop-perception/tree/main/report/figures/vlm_overlays)) confirms that the VLM generates plausible-looking coordinate values (around 0.2, 0.5, 0.7) that do not correspond to actual object positions. The model is satisfying the query shape with guessed coordinates.
 
 **Control.** On real photographs (Statue of Liberty, red apple, desk scene), the same VLM with the same prompt produces tight, correct bounding boxes and — notably — correctly refuses absent objects ("There are no cups visible in the image" when `cup` is queried on a photo without a cup).
 
@@ -172,7 +174,7 @@ Visual inspection ([`report/figures/vlm_overlays/`](figures/vlm_overlays/)) conf
 
 1. For beginner robot kits shipping with a known object set, a fine-tuned MobileNetV3-small classifier is strictly preferred: 97% accuracy at 15ms per frame vs the VLM's unreliable zero-shot and 1300ms latency.
 2. For classrooms where students bring novel items, the VLM is the only model in our lineup that can respond at all. Its 1.3s latency is acceptable for user-initiated queries, and its refusal behavior on absent objects (under Q4) is an honest-AI beat that beats silent false positives.
-3. **Both-and, not either-or.** The production shape is a specialist running continuously on webcam frames at 30fps, with the generalist invoked on user-typed queries or when the specialist's top-3 confidence is low. This is the architecture the live demo implements.
+3. **Both-and, not either-or.** The production shape is a specialist running continuously on camera frames at 30+ fps, with the generalist invoked on user-typed queries or when the specialist's top-3 confidence is low. This is the architecture the live demo implements.
 
 **Interesting secondary finding.** Synthetic-scene narration mode ("describe this image") partially works — simple scenes are narrated accurately, but scenes with yellow or white curvy lines on beige backgrounds are reinterpreted as "line graphs with Time/Value axes", a chart-hallucination trigger. This suggests the VLM's training distribution includes data-visualization images that dominate its prior when the synthetic line color crosses a threshold. Actionable for anyone generating synthetic test data: dark lines preserve physical-world priors; bright curvy lines invoke chart priors.
 
@@ -190,7 +192,7 @@ The deployment decision is not "which model wins." It is "which constraint binds
 
 ## 13. Future Work
 
-**Physical hardware.** The current demo runs on a laptop webcam. The natural next step is ESP32-CAM deployment, which will force us to move the classifier to the microcontroller (quantization, TFLite) and keep the VLM in the user's browser. This is the direct path toward integration with Duke's "Physical Agents OS" robot kits.
+**Physical hardware.** The current demo runs on a laptop webcam or phone camera via WebRTC. The natural next step is ESP32-CAM deployment, which will force us to move the classifier to the microcontroller (quantization, TFLite) and keep the VLM in the user's browser. This is the direct path toward integration with Duke's "Physical Agents OS" robot kits.
 
 **Two-tier verifier.** The VLM's confirm-bias failure mode (drawing a box for a query even when the object is absent) is a real deployment risk. A natural fix is a two-model verifier: accept a VLM box only when the classifier's top-3 overlaps in label space, or when the VLM's text-classification head says "yes, this object is present" in a separate query.
 

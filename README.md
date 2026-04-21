@@ -8,7 +8,7 @@
 
 **[Live demo](https://neevs.io/aipi540-tabletop-perception/)** — point a webcam at a desk, watch a specialist and a generalist reason side-by-side. In-browser, no server, no API keys.
 
-A fine-tuned MobileNetV3-small (2.5M frozen + 6K head) hits **97% top-1 at ~15 ms/frame** on a 6-class tabletop task (`cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`). A 450M-parameter open-vocab VLM (LFM2.5-VL-450M) on the same input runs **~85× slower** at detect (1.3 s/query vs 15 ms/frame) and collapses to 0% recall@IoU≥0.3 on stylized out-of-distribution synthetic scenes — though on natural photos it correctly *refuses* absent-object queries, a property the specialist cannot offer. Production shape: both running at once — specialist on the webcam stream, generalist on typed queries — with the open-vocab tier extending coverage where the closed-set head cannot reach.
+A fine-tuned MobileNetV3-small (2.5M frozen + 6K head) hits **97% top-1 at ~15 ms/frame** on a 6-class tabletop task (`cell_phone`, `cup`, `headphone`, `laptop`, `scissors`, `stapler`). A 450M-parameter open-vocab VLM (LFM2.5-VL-450M) on the same input runs **~85× slower** at detect (1.3 s/query vs 15 ms/frame) and collapses to 0% recall@IoU≥0.3 on stylized out-of-distribution synthetic scenes — though on natural photos it correctly *refuses* absent-object queries, a property the specialist cannot offer. Production shape: both running at once — specialist on the camera stream, generalist on typed queries — with the open-vocab tier extending coverage where the closed-set head cannot reach.
 
 Choosing between them is a deployment decision, not a benchmark one.
 
