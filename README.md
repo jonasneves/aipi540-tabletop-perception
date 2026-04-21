@@ -1,5 +1,11 @@
 # Tabletop Perception for Beginner Robot Kits
 
+[![Live demo](https://img.shields.io/badge/demo-live-00539B)](https://neevs.io/aipi540-tabletop-perception/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![ONNX Runtime Web](https://img.shields.io/badge/ONNX%20Runtime%20Web-WebGPU-00539B)](https://onnxruntime.ai/docs/tutorials/web/)
+[![Duke AIPI 540](https://img.shields.io/badge/Duke-AIPI%20540-012169)](https://ai.meng.duke.edu/)
+
 **[Live demo](https://neevs.io/aipi540-tabletop-perception/)** — point a webcam at a desk, watch a specialist and a generalist reason side-by-side. In-browser, no server, no API keys.
 
 A fine-tuned 3M-parameter MobileNetV3-small hits **97% top-1 at ~15 ms/frame** on a 6-class tabletop task. A 450M-parameter open-vocab VLM (LFM2.5-VL-450M) on the same input runs **~85× slower** and collapses to 0% IoU on stylized out-of-distribution scenes, but answers open-vocabulary queries the specialist cannot attempt. Production shape: both running at once — specialist on the webcam stream, generalist on typed queries — with the generalist's honest refusals as a safety margin against silent false positives.
