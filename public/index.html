@@ -270,6 +270,7 @@ let dlWindowStart = 0;
 let emaProbs = null;   // smoothed per-class probabilities, carried across frames
 let emaLatMs = 0;      // smoothed classifier inference latency
 let lastRender = 0;    // last wall-clock ms we wrote to the chip + lat DOM
+let currentFps = 0;    // last measured classifier throughput, for chip suffix
 
 function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
@@ -306,7 +307,7 @@ function stopCam() {
   placeholder.style.display = '';
   topChip.style.display = 'none';
   stage.classList.remove('live');
-  emaProbs = null; emaLatMs = 0; lastRender = 0;
+  emaProbs = null; emaLatMs = 0; lastRender = 0; currentFps = 0;
 }
 
 async function loadClassifier() {
@@ -387,14 +388,18 @@ function renderChip(ranked) {
   const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
   const margin = top1.p - top2.p;
   const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
+  // Real inference rate right on the chip, so the audience doesn't read the
+  // 4 Hz DOM refresh as the actual classifier rate. Suffix stays hidden until
+  // we have a measurement (dlFrameCount needs ~1 s to compute the first fps).
+  const fpsSuffix = currentFps > 0 ? ` · ${currentFps.toFixed(0)}/s` : '';
   if (certain) {
     topChip.classList.remove('uncertain');
     chipName.textContent  = top1.cls;
-    chipScore.textContent = (top1.p * 100).toFixed(0) + '%';
+    chipScore.textContent = (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   } else {
     topChip.classList.add('uncertain');
     chipName.textContent  = 'uncertain';
-    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%';
+    chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   }
 }
 
@@ -428,7 +433,8 @@ async function startClassifierLoop() {
           dlFrameCount++;
           const elapsed = now - dlWindowStart;
           if (elapsed > 1000) {
-            $('dl-fps').textContent = (dlFrameCount / elapsed * 1000).toFixed(1) + ' fps';
+            currentFps = dlFrameCount / elapsed * 1000;
+            $('dl-fps').textContent = currentFps.toFixed(1) + ' fps';
             dlWindowStart = now;
             dlFrameCount = 0;
           }
