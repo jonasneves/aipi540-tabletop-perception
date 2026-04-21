@@ -15,71 +15,135 @@
     --hatteras: #E2E6ED;
     --graphite: #666666;
     --ink: #1a1a1a;
+    --success: #1e7d3d;
+    --warn: #C84E00;
+    --fail: #c0392b;
     --radius: 10px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--whisper); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "SF Pro Text", sans-serif; }
-  header { padding: 20px 24px 8px; }
-  h1 { color: var(--navy); margin: 0 0 2px; font-size: 22px; letter-spacing: -0.01em; }
-  .sub { color: var(--graphite); font-size: 13px; margin-bottom: 16px; }
-  main { padding: 0 24px 32px; display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+
+  /* App shell: locked to viewport so nothing overflows the page */
+  .app {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  header h1 { color: var(--navy); margin: 0 0 2px; font-size: 20px; letter-spacing: -0.01em; }
+  header .sub { color: var(--graphite); font-size: 13px; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    min-height: 0;
+  }
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
-  .stage { position: relative; background: black; border-radius: var(--radius); overflow: hidden; aspect-ratio: 4/3; }
-  .stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Stage: bounded by viewport so it always fits */
+  .stage-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+  .stage {
+    position: relative;
+    background: #0c0c0c;
+    border-radius: var(--radius);
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    max-height: calc(100dvh - 180px);
+    width: 100%;
+  }
+  .stage video, .stage canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+  }
   .stage canvas { pointer-events: none; }
-  .stage .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #888; font-size: 14px; }
+  .stage .placeholder {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #888; font-size: 14px; text-align: center; padding: 20px;
+  }
   .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
-  .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; }
-  .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-  .top-labels { position: absolute; top: 12px; left: 12px; right: 12px; background: rgba(1, 33, 105, 0.85); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); color: white; padding: 10px 12px; border-radius: 8px; font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; }
-  .top-labels .chip { font-weight: 600; }
-  .top-labels .chip .score { opacity: 0.7; font-weight: 400; margin-left: 4px; }
-  .stage-caption { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: white; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-style: italic; line-height: 1.4; min-height: 20px; max-height: 90px; overflow: auto; }
+  .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
+  .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 
-  .controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
-  button { font: inherit; padding: 8px 16px; background: var(--navy); color: white; border: 0; border-radius: 8px; cursor: pointer; min-height: 44px; }
-  button.ghost { background: white; color: var(--navy); border: 1px solid var(--navy); }
+  .top-labels {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    background: rgba(1, 33, 105, 0.88); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    color: white; padding: 10px 12px; border-radius: 8px; font-size: 13px;
+    display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline;
+  }
+  .top-labels .chip { font-weight: 600; display: flex; align-items: baseline; gap: 6px; }
+  .top-labels .chip .score { opacity: 0.75; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .top-labels .muted { opacity: 0.6; font-weight: 400; font-style: italic; }
+
+  .stage-caption {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    color: white; padding: 10px 12px; border-radius: 8px;
+    font-size: 13px; font-style: italic; line-height: 1.4;
+    max-height: 80px; overflow: auto;
+  }
+
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; padding: 8px 16px; background: var(--navy); color: white; border: 0; border-radius: 8px; cursor: pointer; min-height: 40px; }
+  button.ghost { background: white; color: var(--navy); border: 1px solid var(--hatteras); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.ghost:disabled { color: var(--graphite); }
 
-  aside { display: flex; flex-direction: column; gap: 16px; }
-  .card { background: white; border-radius: var(--radius); padding: 16px; border: 1px solid var(--hatteras); }
-  .card h2 { margin: 0 0 8px; font-size: 14px; color: var(--navy); font-weight: 600; }
+  /* Right rail */
+  aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 100px); padding-right: 4px; }
+  .card { background: white; border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--hatteras); }
+  .card h2 { margin: 0 0 6px; font-size: 14px; color: var(--navy); font-weight: 600; }
   .card .hint { font-size: 12px; color: var(--graphite); margin-bottom: 10px; }
 
-  input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font: inherit; }
+  .query-row { display: flex; gap: 6px; }
+  input[type="text"] { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--hatteras); border-radius: 8px; font: inherit; }
   input[type="text"]:focus { outline: 2px solid var(--royal); outline-offset: -2px; border-color: var(--royal); }
+  .query-row button { min-height: 38px; padding: 4px 14px; }
 
-  .model-status { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 12px; color: var(--graphite); }
-  .model-status .ok { color: #1e7d3d; font-weight: 600; }
-  .model-status .pending { color: var(--copper); }
-  .model-status .fail { color: #c0392b; }
+  .q-status { font-size: 12px; color: var(--graphite); margin-top: 8px; min-height: 1.3em; display: flex; justify-content: space-between; gap: 8px; }
+  .q-status.loading { color: var(--royal); }
+  .q-status.ok { color: var(--success); }
+  .q-status.empty { color: var(--warn); }
 
-  .telemetry { font: 11px/1.4 ui-monospace, monospace; color: var(--graphite); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  .model-status { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 12px; color: var(--graphite); }
+  .model-status .ok { color: var(--success); font-weight: 600; }
+  .model-status .pending { color: var(--warn); }
+  .model-status .fail { color: var(--fail); }
+  .model-status .muted { color: var(--graphite); font-style: italic; }
 
-  .result-list { font-size: 12px; max-height: 140px; overflow: auto; margin: 0; padding-left: 18px; color: var(--graphite); }
+  .telemetry { font: 11px/1.5 ui-monospace, "SF Mono", monospace; color: var(--graphite); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  .telemetry .val { font-variant-numeric: tabular-nums; color: var(--ink); }
 
-  details summary { cursor: pointer; font-weight: 600; color: var(--navy); }
+  .result-list { font-size: 12px; max-height: 220px; overflow: auto; margin: 0; padding-left: 18px; color: var(--graphite); line-height: 1.6; }
+  .result-list li { margin-bottom: 6px; }
+  .result-list small { color: #888; font-size: 11px; }
+
+  details summary { cursor: pointer; font-weight: 600; color: var(--navy); font-size: 13px; }
   details { font-size: 12px; }
 
-  .footer { padding: 24px; color: var(--graphite); font-size: 11px; border-top: 1px solid var(--hatteras); }
+  .footer { color: var(--graphite); font-size: 11px; text-align: center; padding-top: 8px; }
+  .footer a { color: var(--royal); }
 </style>
 </head>
 <body>
 
+<div class="app">
 <header>
   <h1>Tabletop Perception</h1>
-  <div class="sub">A 3M specialist (fine-tuned MobileNetV3-small) vs. a 450M generalist (LFM2.5-VL-450M). Live on your webcam. Duke AIPI 540 · Spring 2026.</div>
+  <div class="sub">A 3M specialist (MobileNetV3-small, fine-tuned) vs. a 450M generalist (LFM2.5-VL-450M). Live on your webcam. Duke AIPI 540 · Spring 2026.</div>
 </header>
 
 <main>
-  <section>
+  <section class="stage-col">
     <div class="stage" id="stage">
       <video id="video" playsinline muted></video>
       <div class="bbox-layer" id="bboxes"></div>
       <div class="top-labels" id="top-labels" style="display:none"></div>
       <div class="stage-caption" id="caption" style="display:none"></div>
-      <div class="placeholder" id="placeholder">Click "Start camera" to begin.</div>
+      <div class="placeholder" id="placeholder">Click <strong>Start camera</strong> to begin.</div>
     </div>
     <div class="controls">
       <button id="start-cam">Start camera</button>
@@ -92,21 +156,19 @@
   <aside>
     <div class="card">
       <h2>Open-vocab query</h2>
-      <div class="hint">Type anything. The VLM will try to box it. Try something that isn't on screen — it should refuse.</div>
-      <form id="q-form">
-        <input id="q" type="text" placeholder="e.g. a coffee mug, or a banana" autocomplete="off" />
+      <div class="hint">Type an object and press Enter or click Find. Try something that isn't on screen — the model should refuse honestly.</div>
+      <form id="q-form" class="query-row">
+        <input id="q" type="text" placeholder="e.g. a coffee mug" autocomplete="off" />
+        <button type="submit" id="q-submit">Find</button>
       </form>
-      <div class="telemetry" style="margin-top:8px">
-        <span id="q-status">idle</span>
-        <span id="q-latency"></span>
-      </div>
+      <div class="q-status" id="q-status"><span>idle</span><span id="q-latency"></span></div>
     </div>
 
     <div class="card">
       <h2>Models loaded</h2>
       <div class="model-status" id="model-status">
-        <span>Naive (HSV)</span><span id="naive-status" class="pending">static results</span>
-        <span>Classical (colorhist + HOG + GBM)</span><span id="classical-status" class="pending">static results</span>
+        <span>Naive (HSV)</span><span id="naive-status" class="muted">offline eval</span>
+        <span>Classical (colorhist + HOG + GBM)</span><span id="classical-status" class="muted">offline eval</span>
         <span>DL (MobileNetV3 classifier)</span><span id="dl-status" class="pending">not loaded</span>
         <span>VLM (LFM2.5-VL-450M)</span><span id="vlm-status" class="pending">not loaded</span>
       </div>
@@ -114,40 +176,40 @@
 
     <div class="card">
       <h2>Live telemetry</h2>
-      <div class="telemetry" id="telemetry">
-        <span>Classifier inference</span><span id="dl-lat">-</span>
-        <span>VLM detect</span><span id="vlm-lat">-</span>
-        <span>VLM narrate</span><span id="vlm-narr-lat">-</span>
-        <span>Frame rate</span><span id="fps">-</span>
+      <div class="telemetry">
+        <span>Classifier inference</span><span class="val" id="dl-lat">–</span>
+        <span>Classifier throughput</span><span class="val" id="dl-fps">–</span>
+        <span>VLM detect</span><span class="val" id="vlm-lat">–</span>
+        <span>VLM narrate</span><span class="val" id="vlm-narr-lat">–</span>
       </div>
     </div>
 
-    <details class="card">
-      <summary>Offline comparison (from Caltech-101 test split)</summary>
-      <div class="hint" style="margin-top:6px">Accuracies and per-class F1 loaded from <code>results/*.json</code>.</div>
+    <details class="card" open>
+      <summary>Offline comparison (Caltech-101 test split)</summary>
+      <div class="hint" style="margin-top:6px">Accuracy on held-out 6-class test set, n=62.</div>
       <ul class="result-list" id="static-results"></ul>
     </details>
 
     <details class="card">
       <summary>About</summary>
-      <div style="color:var(--graphite); margin-top:6px">
-        Specialist: MobileNetV3-small head-tune on 261 Caltech-101 images, 6 classes.<br>
+      <div style="color:var(--graphite); margin-top:6px; line-height:1.5">
+        Specialist: MobileNetV3-small head-tune on 261 Caltech-101 images across 6 classes.<br>
         Generalist: LFM2.5-VL-450M (Q4 decoder) via Transformers.js + WebGPU.<br>
-        Stack works in Chrome 113+.<br>
-        <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank">Code on GitHub</a>
+        Works in Chrome 113+.<br>
+        <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">Code on GitHub</a>
       </div>
     </details>
   </aside>
 </main>
 
-<div class="footer">Jonas Neves · Duke AIPI 540 · 2026-04-21 · <a href="https://github.com/jonasneves/aipi540-tabletop-perception">github.com/jonasneves/aipi540-tabletop-perception</a></div>
+<div class="footer">Jonas Neves · Duke AIPI 540 · 2026-04-21 · <a href="https://github.com/jonasneves/aipi540-tabletop-perception" target="_blank" rel="noopener">github.com/jonasneves/aipi540-tabletop-perception</a></div>
+</div>
 
 <script type="module">
-// ── Config ───────────────────────────────────────────────────
 const CLASSIFIER_URL = 'models/classifier.onnx';
 const RESULTS_JSONS = [
   { key: 'naive', label: 'Naive (HSV)' },
-  { key: 'classical', label: 'Classical (colorhist+HOG+GBM)' },
+  { key: 'classical', label: 'Classical (colorhist + HOG + GBM)' },
   { key: 'dl', label: 'DL (MobileNetV3)' },
 ];
 const CLASSES = ['cell_phone', 'cup', 'headphone', 'laptop', 'scissors', 'stapler'];
@@ -155,26 +217,29 @@ const IMAGENET_MEAN = [0.485, 0.456, 0.406];
 const IMAGENET_STD = [0.229, 0.224, 0.225];
 const VLM_MODEL = 'LiquidAI/LFM2.5-VL-450M-ONNX';
 
-// ── DOM ──────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const video = $('video'), stage = $('stage'), placeholder = $('placeholder');
+const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam'), loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle');
 const topLabels = $('top-labels'), bboxLayer = $('bboxes'), captionEl = $('caption');
+const qStatus = $('q-status');
 
-// ── State ────────────────────────────────────────────────────
 let stream = null;
 let classifierSession = null;
-let vlm = null;       // { model, processor, RawImage }
+let vlm = null;
 let vlmLoading = false;
 let classifierLoopActive = false;
 let narrating = false;
-let frameTs = [];
+let dlFrameCount = 0;
+let dlWindowStart = 0;
 
-// ── Helpers ──────────────────────────────────────────────────
-function setStatus(id, text, cls) {
+function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
-  el.textContent = text;
-  el.className = cls || '';
+  el.textContent = text; el.className = cls;
+}
+function setQStatus(text, level = '', latency = '') {
+  qStatus.className = 'q-status ' + level;
+  qStatus.children[0].textContent = text;
+  qStatus.children[1].textContent = latency;
 }
 function softmax(arr) {
   const m = Math.max(...arr);
@@ -183,17 +248,15 @@ function softmax(arr) {
   return exps.map(v => v / s);
 }
 
-// ── Webcam ───────────────────────────────────────────────────
 async function startCam() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 }, audio: false });
-  } catch (e) {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+  } catch {
     stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
   }
   video.srcObject = stream;
   await video.play();
   placeholder.style.display = 'none';
-  topLabels.style.display = '';
   startBtn.disabled = true; stopBtn.disabled = false;
   startClassifierLoop();
 }
@@ -205,18 +268,25 @@ function stopCam() {
   topLabels.style.display = 'none';
 }
 
-// ── Classifier (ONNX Runtime Web) ────────────────────────────
 async function loadClassifier() {
   if (classifierSession) return classifierSession;
-  const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/+esm');
   try {
-    setStatus('dl-status', 'loading', 'pending');
-    classifierSession = await ort.InferenceSession.create(CLASSIFIER_URL, { executionProviders: ['webgpu', 'wasm'] });
+    setStatus('dl-status', 'loading…', 'pending');
+    const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.webgpu.min.mjs');
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
+    const providers = navigator.gpu ? ['webgpu', 'wasm'] : ['wasm'];
+    try {
+      classifierSession = await ort.InferenceSession.create(CLASSIFIER_URL, { executionProviders: providers });
+    } catch (e1) {
+      console.warn('WebGPU failed, falling back to wasm:', e1);
+      classifierSession = await ort.InferenceSession.create(CLASSIFIER_URL, { executionProviders: ['wasm'] });
+    }
     setStatus('dl-status', 'ready', 'ok');
+    window._ort = ort;
     return classifierSession;
   } catch (e) {
-    setStatus('dl-status', 'no model (train first)', 'fail');
-    console.warn('Classifier load failed:', e);
+    setStatus('dl-status', 'load failed — see console', 'fail');
+    console.error('Classifier load failed:', e);
     return null;
   }
 }
@@ -245,12 +315,11 @@ function canvasToCHWTensor(canvas) {
 }
 
 async function classifierStep() {
-  if (!classifierSession || !video.videoWidth) return null;
-  const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/+esm');
+  if (!classifierSession || !video.videoWidth || !window._ort) return null;
   const canvas = captureFrame(224);
   if (!canvas) return null;
   const arr = canvasToCHWTensor(canvas);
-  const input = new ort.Tensor('float32', arr, [1, 3, 224, 224]);
+  const input = new window._ort.Tensor('float32', arr, [1, 3, 224, 224]);
   const t0 = performance.now();
   const out = await classifierSession.run({ input });
   const dt = performance.now() - t0;
@@ -260,7 +329,9 @@ async function classifierStep() {
   return { top: ranked.slice(0, 3), dt };
 }
 
-function renderTopLabels(top3) {
+function renderTopLabels(top3, ready) {
+  if (!ready) { topLabels.style.display = 'none'; return; }
+  topLabels.style.display = 'flex';
   topLabels.innerHTML = top3.map(r =>
     `<div class="chip">${r.cls}<span class="score">${(r.p * 100).toFixed(0)}%</span></div>`
   ).join('');
@@ -269,34 +340,41 @@ function renderTopLabels(top3) {
 async function startClassifierLoop() {
   if (classifierLoopActive) return;
   classifierLoopActive = true;
-  await loadClassifier();
-  let lastDt = 0;
+  const session = await loadClassifier();
+  if (!session) {
+    topLabels.style.display = 'flex';
+    topLabels.innerHTML = '<span class="muted">classifier not available — open-vocab query and narration still work</span>';
+  }
+  dlWindowStart = performance.now();
+  dlFrameCount = 0;
   const tick = async () => {
     if (!classifierLoopActive) return;
-    const now = performance.now();
-    frameTs.push(now); if (frameTs.length > 30) frameTs.shift();
-    if (frameTs.length > 1) {
-      const fps = (frameTs.length - 1) * 1000 / (now - frameTs[0]);
-      $('fps').textContent = fps.toFixed(1) + ' fps';
-    }
     if (classifierSession) {
-      const r = await classifierStep();
-      if (r) {
-        renderTopLabels(r.top);
-        $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
-        lastDt = r.dt;
-      }
+      try {
+        const r = await classifierStep();
+        if (r) {
+          renderTopLabels(r.top, true);
+          $('dl-lat').textContent = r.dt.toFixed(0) + ' ms';
+          dlFrameCount++;
+          const elapsed = performance.now() - dlWindowStart;
+          if (elapsed > 1000) {
+            $('dl-fps').textContent = (dlFrameCount / elapsed * 1000).toFixed(1) + ' fps';
+            dlWindowStart = performance.now();
+            dlFrameCount = 0;
+          }
+        }
+      } catch (e) { console.warn(e); }
     }
     requestAnimationFrame(tick);
   };
   tick();
 }
 
-// ── VLM (Transformers.js) ────────────────────────────────────
 async function loadVLM() {
   if (vlm || vlmLoading) return;
   vlmLoading = true;
   setStatus('vlm-status', 'downloading weights…', 'pending');
+  loadVlmBtn.disabled = true;
   try {
     const tf = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
     const model = await tf.AutoModelForImageTextToText.from_pretrained(VLM_MODEL, {
@@ -310,8 +388,10 @@ async function loadVLM() {
     vlm = { model, processor, RawImage: tf.RawImage };
     setStatus('vlm-status', 'ready', 'ok');
     narrateBtn.disabled = false;
+    loadVlmBtn.textContent = 'VLM ready';
   } catch (e) {
     setStatus('vlm-status', 'load failed', 'fail');
+    loadVlmBtn.disabled = false;
     console.error(e);
   } finally { vlmLoading = false; }
 }
@@ -324,8 +404,14 @@ async function captureRawImage() {
 }
 
 async function vlmDetect(query) {
-  if (!vlm) { await loadVLM(); if (!vlm) return; }
-  const raw = await captureRawImage(); if (!raw) return;
+  if (!vlm) {
+    setQStatus('loading VLM — please wait', 'loading');
+    await loadVLM();
+  }
+  if (!vlm) { setQStatus('VLM not available', 'empty'); return; }
+  if (!video.videoWidth) { setQStatus('start the camera first', 'empty'); return; }
+  const raw = await captureRawImage();
+  setQStatus('detecting…', 'loading');
   const prompt = `Detect all instances of: ${query}. Response must be a JSON array: [{"label": "...", "bbox": [x1, y1, x2, y2]}, ...]. Coordinates are normalized to [0,1]. If not present, say so in plain text.`;
   const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: prompt }] }];
   const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
@@ -336,10 +422,10 @@ async function vlmDetect(query) {
   const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
   const text = decoded[0];
   $('vlm-lat').textContent = dt.toFixed(0) + ' ms';
-  renderDetectOutput(text, query);
+  renderDetectOutput(text, query, dt);
 }
 
-function renderDetectOutput(text, query) {
+function renderDetectOutput(text, query, dt) {
   bboxLayer.innerHTML = '';
   const start = text.indexOf('['); const end = text.lastIndexOf(']');
   let boxes = [];
@@ -353,10 +439,11 @@ function renderDetectOutput(text, query) {
     } catch {}
   }
   if (!boxes.length) {
-    $('q-status').textContent = text.length < 160 ? text : 'no match — model returned: ' + text.slice(0, 100) + '…';
+    const msg = text.length < 160 ? text.trim() : 'no match — ' + text.slice(0, 100).trim() + '…';
+    setQStatus(msg, 'empty', dt.toFixed(0) + ' ms');
     return;
   }
-  $('q-status').textContent = `found ${boxes.length}`;
+  setQStatus(`found ${boxes.length}`, 'ok', dt.toFixed(0) + ' ms');
   for (const b of boxes) {
     const [x1, y1, x2, y2] = b.bbox;
     const div = document.createElement('div'); div.className = 'bbox';
@@ -396,7 +483,6 @@ async function narrateLoop() {
   }
 }
 
-// ── Static results panel ─────────────────────────────────────
 async function loadStaticResults() {
   const ul = $('static-results');
   for (const { key, label } of RESULTS_JSONS) {
@@ -405,13 +491,13 @@ async function loadStaticResults() {
       if (!r) continue;
       const li = document.createElement('li');
       const acc = r.accuracy !== undefined ? (r.accuracy * 100).toFixed(1) + '%' : '—';
-      li.innerHTML = `<strong>${label}</strong>: ${acc} accuracy<br/><small>${Object.entries(r.per_class_f1 || {}).map(([c, v]) => `${c}=${(v).toFixed(2)}`).join(' · ')}</small>`;
+      const f1s = Object.entries(r.per_class_f1 || {}).map(([c, v]) => `${c}=${v.toFixed(2)}`).join(' · ');
+      li.innerHTML = `<strong>${label}</strong>: ${acc} accuracy<br/><small>${f1s}</small>`;
       ul.appendChild(li);
     } catch (e) { console.warn(`results/${key}.json not loaded`, e); }
   }
 }
 
-// ── Wire ─────────────────────────────────────────────────────
 startBtn.addEventListener('click', startCam);
 stopBtn.addEventListener('click', stopCam);
 loadVlmBtn.addEventListener('click', loadVLM);
@@ -420,7 +506,6 @@ $('q-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('q').value.trim();
   if (!q) return;
-  $('q-status').textContent = 'detecting…';
   vlmDetect(q);
 });
 
