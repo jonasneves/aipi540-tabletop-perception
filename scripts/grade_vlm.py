@@ -10,7 +10,12 @@ import json
 from pathlib import Path
 from PIL import Image, ImageDraw
 
-ROOT = Path(__file__).parent
+REPO         = Path(__file__).resolve().parent.parent
+SCENES_DIR   = REPO / "data" / "synthetic_scenes"
+GT_PATH      = SCENES_DIR / "ground_truth.json"
+VLM_PROBE    = REPO / "results" / "vlm_ood" / "vlm_probe_q4.json"
+OVERLAY_DIR  = REPO / "report" / "figures" / "vlm_overlays"
+REPORT_PATH  = REPO / "results" / "vlm_ood" / "grade_report.json"
 SIZE = 512
 
 QUERY_TO_CLASS = {
@@ -39,19 +44,18 @@ def iou(a, b):
 
 
 def main():
-    gt_all = json.loads((ROOT / "scenes/ground_truth.json").read_text())
-    vlm_all = json.loads((ROOT / "vlm_probe_results.json").read_text())
+    gt_all  = json.loads(GT_PATH.read_text())
+    vlm_all = json.loads(VLM_PROBE.read_text())
     gt_by_scene = {g["scene"]: g["objects"] for g in gt_all}
 
-    overlay_dir = ROOT / "overlays"
-    overlay_dir.mkdir(exist_ok=True)
+    OVERLAY_DIR.mkdir(parents=True, exist_ok=True)
 
     per_query = {}  # query -> list of {max_iou, gt_count, pred_count}
 
     for entry in vlm_all:
         scene = entry["scene"]
         gt_objs = gt_by_scene[scene]
-        img = Image.open(ROOT / "scenes" / scene).convert("RGB")
+        img = Image.open(SCENES_DIR / scene).convert("RGB")
         draw = ImageDraw.Draw(img)
 
         for r in entry["results"]:
@@ -84,16 +88,16 @@ def main():
             for pb in pred_boxes_px:
                 draw.rectangle(pb, outline=color, width=3)
 
-        img.save(overlay_dir / scene)
+        img.save(OVERLAY_DIR / scene)
 
     # Also render GT for reference
     for scene, gt_objs in gt_by_scene.items():
-        img = Image.open(ROOT / "scenes" / scene).convert("RGB")
+        img = Image.open(SCENES_DIR / scene).convert("RGB")
         draw = ImageDraw.Draw(img)
         gtcolors = {"line": "#012169", "obstacle": "#C84E00", "goal": "#A1B70D", "clutter": "#888888"}
         for o in gt_objs:
             draw.rectangle(tuple(o["bbox"]), outline=gtcolors.get(o["class"], "#666"), width=2)
-        img.save(overlay_dir / f"gt_{scene}")
+        img.save(OVERLAY_DIR / f"gt_{scene}")
 
     # Report
     print(f"{'Query':<40} {'N':>3}  {'mean maxIoU':>12}  {'recall@0.3':>11}  {'mean preds':>11}  {'mean dt':>10}")
@@ -115,12 +119,13 @@ def main():
     p90 = all_dt[int(len(all_dt) * 0.9)]
     print(f"\nLatency: N={len(all_dt)}, p50={p50:.0f}ms, p90={p90:.0f}ms, mean={sum(all_dt)/len(all_dt):.0f}ms")
 
-    (ROOT / "grade_report.json").write_text(json.dumps({
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(json.dumps({
         "per_query": summary,
         "latency_ms": {"p50": p50, "p90": p90, "mean": sum(all_dt) / len(all_dt), "n": len(all_dt)},
     }, indent=2))
-    print(f"\nOverlays: {overlay_dir}/")
-    print(f"Report:   {ROOT/'grade_report.json'}")
+    print(f"\nOverlays: {OVERLAY_DIR}/")
+    print(f"Report:   {REPORT_PATH}")
 
 
 if __name__ == "__main__":
