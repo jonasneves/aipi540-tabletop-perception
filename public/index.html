@@ -80,6 +80,21 @@
   /* Active-feed glow */
   .stage.live { box-shadow: 0 0 0 1px var(--royal), 0 0 24px rgba(0, 83, 155, 0.20); }
 
+  /* VLM narration caption — line-clamp so text-length variance doesn't bounce the box */
+  .stage-caption {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    color: white; padding: 10px 12px; border-radius: 8px;
+    font-size: 13px; font-style: italic; line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .bbox-layer { position: absolute; inset: 0; pointer-events: none; }
   .bbox { position: absolute; border: 3px solid var(--copper); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
   .bbox > .lbl { position: absolute; top: -22px; left: -2px; background: var(--copper); color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; white-space: nowrap; }
@@ -108,6 +123,23 @@
   }
   .top-chip.uncertain .pulse { background: #ffd28a; box-shadow: 0 0 8px #ffd28a; }
   @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* QR chip — top-right, only while local cam is active (not peer sync) */
+  .qr-chip {
+    position: absolute; top: 12px; right: 12px;
+    max-width: min(60%, 420px);
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    color: white;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 12px;
+    display: none; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .qr-chip .tag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+  .qr-chip .val { font: 12px/1.35 ui-monospace, "SF Mono", monospace; word-break: break-all; max-height: 3.2em; overflow: hidden; }
+  .qr-chip.open { background: rgba(0, 83, 155, 0.88); }
 
   .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   button { font: inherit; padding: 8px 16px; background: var(--navy); color: white; border: 0; border-radius: 8px; cursor: pointer; min-height: 40px; }
@@ -146,6 +178,37 @@
 
   details summary { cursor: pointer; font-weight: 600; color: var(--navy); font-size: 13px; }
   details { font-size: 12px; }
+
+  /* ?debug panel — surfaces webrtc state + log tail when enabled */
+  .debug-panel {
+    position: fixed;
+    right: 12px; bottom: 12px;
+    width: 380px; max-width: calc(100vw - 24px);
+    max-height: 70vh;
+    background: rgba(0, 0, 0, 0.88);
+    color: #c0e7ff;
+    font: 11px/1.45 ui-monospace, "SF Mono", monospace;
+    border-radius: 10px;
+    border: 1px solid rgba(124, 255, 181, 0.22);
+    padding: 12px 14px;
+    overflow: auto;
+    z-index: 1000;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .debug-panel h3 { color: #fff; margin: 0 0 6px; font: 600 12px/1.3 system-ui; letter-spacing: 0.02em; }
+  .debug-panel h3:not(:first-child) { margin-top: 10px; }
+  .debug-panel .row { display: grid; grid-template-columns: 110px 1fr; gap: 3px 10px; }
+  .debug-panel .k { color: #8aa0b0; }
+  .debug-panel .v { color: #e5f3ff; word-break: break-all; }
+  .debug-panel .v.good { color: #7cffb5; }
+  .debug-panel .v.warn { color: #ffd28a; }
+  .debug-panel .v.bad  { color: #ff9d8a; }
+  .debug-panel .log { background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 4px; max-height: 220px; overflow: auto; font-size: 10.5px; }
+  .debug-panel .log div { line-height: 1.4; opacity: 0.9; white-space: pre-wrap; word-break: break-all; }
+  .debug-panel .log div.err { color: #ff9d8a; }
+  .debug-panel .close-x { float: right; cursor: pointer; color: #8aa0b0; font: 600 12px/1 system-ui; }
+  .debug-panel .close-x:hover { color: #fff; }
 </style>
 </head>
 <body>
@@ -166,6 +229,13 @@
         <div class="label-name" id="chip-name">—</div>
         <div class="label-score" id="chip-score"></div>
       </div>
+      <div class="qr-chip" id="qr-chip" title="click to open or copy">
+        <div>
+          <div class="tag">QR</div>
+          <div class="val" id="qr-val"></div>
+        </div>
+      </div>
+      <div class="stage-caption" id="caption" style="display:none"></div>
       <div class="placeholder" id="placeholder"><span>Click <strong>Start camera</strong> to begin.</span></div>
     </div>
     <div class="controls">
@@ -173,6 +243,8 @@
       <button id="use-phone" class="ghost">Use phone camera</button>
       <button id="stop-cam" class="ghost" disabled>Stop</button>
       <button id="load-vlm" class="ghost">Load VLM (450M · one-time)</button>
+      <button id="verify-btn" class="ghost" disabled>Verify with VLM</button>
+      <button id="narrate-toggle" class="ghost" disabled>Narration: off</button>
     </div>
 
     <div id="phone-panel" class="card" style="display:none; margin-top:4px">
@@ -213,6 +285,7 @@
         <span>Classifier inference</span><span class="val" id="dl-lat">–</span>
         <span>Classifier throughput</span><span class="val" id="dl-fps">–</span>
         <span>VLM detect</span><span class="val" id="vlm-lat">–</span>
+        <span>VLM narrate</span><span class="val" id="vlm-narr-lat">–</span>
       </div>
     </div>
 
@@ -227,7 +300,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script type="module">
-import { startDesktop, makeRoomId } from './webrtc.js';
+import { startDesktop, makeRoomId, onDebugLog, DEBUG } from './webrtc.js';
 
 const CLASSIFIER_URL = 'models/classifier.onnx';
 const RESULTS_JSONS = [
@@ -254,23 +327,30 @@ const RENDER_MIN_MS = 250;
 const $ = id => document.getElementById(id);
 const video = $('video'), placeholder = $('placeholder');
 const startBtn = $('start-cam'), stopBtn = $('stop-cam');
-const loadVlmBtn = $('load-vlm');
+const loadVlmBtn = $('load-vlm'), narrateBtn = $('narrate-toggle'), verifyBtn = $('verify-btn');
 const stage = $('stage');
 const topChip = $('top-chip'), chipName = $('chip-name'), chipScore = $('chip-score');
-const bboxLayer = $('bboxes');
+const bboxLayer = $('bboxes'), captionEl = $('caption');
 const qStatus = $('q-status');
 
 let stream = null;
+let qrLoopActive = false;
+let qrDetector = null;
+let qrLastSeen = 0;
+let qrLastValue = '';
+const qrChip = $('qr-chip'), qrVal = $('qr-val');
 let classifierSession = null;
 let vlm = null;
 let vlmLoading = false;
 let classifierLoopActive = false;
+let narrating = false;
 let dlFrameCount = 0;
 let dlWindowStart = 0;
 let emaProbs = null;   // smoothed per-class probabilities, carried across frames
 let emaLatMs = 0;      // smoothed classifier inference latency
 let lastRender = 0;    // last wall-clock ms we wrote to the chip + lat DOM
 let currentFps = 0;    // last measured classifier throughput, for chip suffix
+let verifyOverride = null;  // { label, verdict: 'confirmed' | 'disagrees' } from VLM cross-check
 
 function setStatus(id, text, cls = '') {
   const el = $(id); if (!el) return;
@@ -287,6 +367,79 @@ function softmax(arr) {
   return exps.map(v => v / s);
 }
 
+// ── QR detection ─────────────────────────────────────────────
+// Runs only when the local webcam is active and peer sync isn't.
+// Native BarcodeDetector where available (Chrome/Edge/Android); jsQR fallback
+// covers Safari/Firefox.
+async function initQrDetector() {
+  if (qrDetector) return qrDetector;
+  try {
+    if ('BarcodeDetector' in window) {
+      const formats = await window.BarcodeDetector.getSupportedFormats();
+      if (formats.includes('qr_code')) {
+        qrDetector = { native: new window.BarcodeDetector({ formats: ['qr_code'] }) };
+        return qrDetector;
+      }
+    }
+  } catch {}
+  try {
+    const mod = await import('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/+esm');
+    qrDetector = { jsqr: mod.default || mod };
+  } catch (e) { console.warn('QR detector unavailable:', e); qrDetector = { disabled: true }; }
+  return qrDetector;
+}
+const qrCanvas = document.createElement('canvas');
+async function decodeQrFromVideo() {
+  if (!video.videoWidth) return null;
+  const w = Math.min(video.videoWidth, 640);
+  const h = Math.round(video.videoHeight * (w / video.videoWidth));
+  qrCanvas.width = w; qrCanvas.height = h;
+  const ctx = qrCanvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, w, h);
+  if (qrDetector.native) {
+    const codes = await qrDetector.native.detect(qrCanvas);
+    return codes && codes.length ? codes[0].rawValue : null;
+  }
+  if (qrDetector.jsqr) {
+    const img = ctx.getImageData(0, 0, w, h);
+    const r = qrDetector.jsqr(img.data, w, h, { inversionAttempts: 'dontInvert' });
+    return r ? r.data : null;
+  }
+  return null;
+}
+function renderQrChip(text) {
+  qrLastValue = text;
+  qrLastSeen = performance.now();
+  qrVal.textContent = text.length > 120 ? text.slice(0, 117) + '…' : text;
+  qrChip.classList.toggle('open', /^https?:\/\//i.test(text));
+  qrChip.style.display = 'flex';
+}
+function hideQrChip() { qrChip.style.display = 'none'; qrLastValue = ''; }
+qrChip.addEventListener('click', () => {
+  if (!qrLastValue) return;
+  if (/^https?:\/\//i.test(qrLastValue)) window.open(qrLastValue, '_blank', 'noopener');
+  else navigator.clipboard?.writeText(qrLastValue).catch(() => {});
+});
+async function startQrLoop() {
+  if (qrLoopActive) return;
+  qrLoopActive = true;
+  const det = await initQrDetector();
+  if (det.disabled) { qrLoopActive = false; return; }
+  const tick = async () => {
+    if (!qrLoopActive) return;
+    // Gate: only while local cam is active AND peer sync isn't.
+    if (!stream || phoneHandle) { qrLoopActive = false; hideQrChip(); return; }
+    try {
+      const text = await decodeQrFromVideo();
+      if (text) renderQrChip(text);
+      else if (performance.now() - qrLastSeen > 1500) hideQrChip();
+    } catch (e) { /* transient decode failures are fine */ }
+    setTimeout(() => { if (qrLoopActive) requestAnimationFrame(tick); }, 250);
+  };
+  tick();
+}
+function stopQrLoop() { qrLoopActive = false; hideQrChip(); }
+
 async function startCam() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
@@ -299,6 +452,7 @@ async function startCam() {
   startBtn.disabled = true; stopBtn.disabled = false;
   stage.classList.add('live');
   startClassifierLoop();
+  startQrLoop();
 }
 function stopCam() {
   if (stream) stream.getTracks().forEach(t => t.stop());
@@ -308,6 +462,9 @@ function stopCam() {
   topChip.style.display = 'none';
   stage.classList.remove('live');
   emaProbs = null; emaLatMs = 0; lastRender = 0; currentFps = 0;
+  if (narrating) { narrating = false; narrateBtn.textContent = 'Narration: off'; }
+  captionEl.style.display = 'none';
+  stopQrLoop();
 }
 
 async function loadClassifier() {
@@ -388,10 +545,26 @@ function renderChip(ranked) {
   const top1 = ranked[0], top2 = ranked[1] || { p: 0 };
   const margin = top1.p - top2.p;
   const certain = top1.p >= CONF_MIN && margin >= MARGIN_MIN;
-  // Real inference rate right on the chip, so the audience doesn't read the
-  // 4 Hz DOM refresh as the actual classifier rate. Suffix stays hidden until
-  // we have a measurement (dlFrameCount needs ~1 s to compute the first fps).
   const fpsSuffix = currentFps > 0 ? ` · ${currentFps.toFixed(0)}/s` : '';
+
+  // VLM cross-check takes precedence over the confidence gate. If the VLM
+  // said the label isn't actually present, show an amber "VLM disagrees" chip
+  // regardless of classifier confidence. If the VLM confirmed, show a tick.
+  if (verifyOverride && verifyOverride.label === top1.cls) {
+    if (verifyOverride.verdict === 'disagrees') {
+      topChip.classList.add('uncertain');
+      chipName.textContent  = 'VLM disagrees';
+      chipScore.textContent = `classifier: ${top1.cls} ${(top1.p * 100).toFixed(0)}%`;
+      return;
+    }
+    if (verifyOverride.verdict === 'confirmed') {
+      topChip.classList.remove('uncertain');
+      chipName.textContent  = top1.cls + ' ✓';
+      chipScore.textContent = (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
+      return;
+    }
+  }
+
   if (certain) {
     topChip.classList.remove('uncertain');
     chipName.textContent  = top1.cls;
@@ -401,6 +574,40 @@ function renderChip(ranked) {
     chipName.textContent  = 'uncertain';
     chipScore.textContent = top1.cls + ' ' + (top1.p * 100).toFixed(0) + '%' + fpsSuffix;
   }
+}
+
+// VLM cross-check: ask the VLM whether the classifier's top-1 label is
+// actually visible in the current frame. NONE → flip the chip to amber
+// ("VLM disagrees"). YES → tick the chip. This is the two-tier architecture
+// s5 names as "one shape worth exploring" — wired as a user-initiated beat
+// so it doesn't spam the VLM on every frame.
+async function verifyClassifier() {
+  if (!vlm || !video.videoWidth || !classifierLoopActive || !emaProbs) return;
+  const ranked = emaProbs.map((p, i) => ({ cls: CLASSES[i] || `cls_${i}`, p })).sort((a, b) => b.p - a.p);
+  const top1 = ranked[0];
+  if (!top1) return;
+
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying…';
+
+  try {
+    const raw = await captureRawImage();
+    const niceLabel = top1.cls.replace(/_/g, ' ');
+    const prompt = `Look carefully at the image. Is a ${niceLabel} actually visible in it? Answer with exactly one word: YES or NONE.`;
+    const messages = [{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: prompt }] }];
+    const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
+    const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
+    const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 16 });
+    const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
+    const result = decoded[0].trim();
+    const verdict = /^NONE\b/i.test(result) ? 'disagrees' : 'confirmed';
+    verifyOverride = { label: top1.cls, verdict };
+    // Auto-clear so the chip returns to normal once the audience has seen the beat.
+    setTimeout(() => { verifyOverride = null; }, verdict === 'disagrees' ? 6000 : 3500);
+  } catch (e) { console.warn('verify failed:', e); }
+
+  verifyBtn.disabled = false;
+  verifyBtn.textContent = 'Verify with VLM';
 }
 
 async function startClassifierLoop() {
@@ -464,6 +671,8 @@ async function loadVLM() {
     vlm = { model, processor, RawImage: tf.RawImage };
     setStatus('vlm-status', 'ready', 'ok');
     loadVlmBtn.textContent = 'VLM ready';
+    narrateBtn.disabled = false;
+    verifyBtn.disabled = false;
   } catch (e) {
     setStatus('vlm-status', 'load failed', 'fail');
     loadVlmBtn.disabled = false;
@@ -544,6 +753,46 @@ function renderDetectOutput(text, query, dt) {
   }
 }
 
+// VLM narrate — observation directive; list distinct physical objects only,
+// skipping walls/ceiling/background. Off by default; toggled via button. Note
+// that running narration alongside the classifier loop shares GPU, so live
+// fps drops while this is on — acceptable because it's opt-in.
+async function vlmNarrate() {
+  if (!vlm) return;
+  const raw = await captureRawImage(); if (!raw) return;
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'image' },
+      { type: 'text', text: 'List the distinct physical objects visible in the image, one per line. Skip walls, ceiling, and background.' }
+    ]
+  }];
+  const chatPrompt = vlm.processor.apply_chat_template(messages, { add_generation_prompt: true });
+  const inputs = await vlm.processor(raw, chatPrompt, { add_special_tokens: false });
+  const t0 = performance.now();
+  const outputs = await vlm.model.generate({ ...inputs, do_sample: false, max_new_tokens: 96 });
+  const dt = performance.now() - t0;
+  const decoded = vlm.processor.batch_decode(outputs.slice(null, [inputs.input_ids.dims.at(-1), null]), { skip_special_tokens: true });
+  $('vlm-narr-lat').textContent = dt.toFixed(0) + ' ms';
+  captionEl.style.display = '';
+  const full = decoded[0].trim();
+  captionEl.textContent = full;
+  captionEl.title = full;
+}
+
+function toggleNarrate() {
+  narrating = !narrating;
+  narrateBtn.textContent = narrating ? 'Narration: on' : 'Narration: off';
+  if (narrating) narrateLoop();
+  else captionEl.style.display = 'none';
+}
+async function narrateLoop() {
+  while (narrating) {
+    try { await vlmNarrate(); } catch (e) { console.warn(e); }
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+
 async function loadStaticResults() {
   const ul = $('static-results');
   for (const { key, label } of RESULTS_JSONS) {
@@ -576,8 +825,9 @@ phoneBtn.addEventListener('click', () => {
 });
 
 function startPhoneMode() {
+  stopQrLoop();
   const room = makeRoomId();
-  const phoneUrl = `${location.origin}${location.pathname.replace(/\/$/, '')}/phone/?peer=${room}`;
+  const phoneUrl = `${location.origin}${location.pathname.replace(/\/$/, '')}/phone/?peer=${room}${DEBUG ? '&debug' : ''}`;
   phonePanel.style.display = '';
   $('phone-url').textContent = phoneUrl;
   const qrEl = $('phone-qr'); qrEl.innerHTML = '';
@@ -607,7 +857,8 @@ function stopPhone() {
   phoneBtn.textContent = 'Use phone camera';
   phoneBtn.classList.add('ghost');
   if (video.srcObject && video.srcObject.getTracks().some(t => t.readyState === 'live')) {
-    // leave stream intact if still active from phone
+    // leave stream intact if still active from phone; resume QR if it's our local cam
+    if (stream) startQrLoop();
   } else {
     placeholder.style.display = '';
     startBtn.disabled = false; stopBtn.disabled = true;
@@ -620,6 +871,8 @@ function stopPhone() {
 startBtn.addEventListener('click', startCam);
 stopBtn.addEventListener('click', () => { stopPhone(); stopCam(); });
 loadVlmBtn.addEventListener('click', loadVLM);
+narrateBtn.addEventListener('click', toggleNarrate);
+verifyBtn.addEventListener('click', verifyClassifier);
 $('q-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('q').value.trim();
@@ -630,6 +883,99 @@ $('q-form').addEventListener('submit', (e) => {
 loadStaticResults();
 loadClassifier();   // warm in the background so first camera-start is fast
 if (!navigator.gpu) setStatus('vlm-status', 'no WebGPU — Chrome 113+', 'fail');
+
+// ── ?debug panel ───────────────────────────────────────────
+// Surfaces live webrtc state, perception loops, and a log tail. Enable by
+// appending ?debug to the URL. Intentionally doesn't ship in the default UI.
+if (DEBUG) {
+  const panel = document.createElement('div');
+  panel.className = 'debug-panel';
+  panel.innerHTML = `
+    <span class="close-x" id="dbg-close">×</span>
+    <h3>webrtc</h3>
+    <div id="dbg-state" class="row"><span class="k">peer sync:</span><span class="v">off</span></div>
+    <h3>perception</h3>
+    <div class="row">
+      <span class="k">local cam:</span><span class="v" id="dbg-local">off</span>
+      <span class="k">classifier:</span><span class="v" id="dbg-cls">–</span>
+      <span class="k">qr loop:</span><span class="v" id="dbg-qr">off</span>
+      <span class="k">qr engine:</span><span class="v" id="dbg-qr-eng">–</span>
+      <span class="k">vlm:</span><span class="v" id="dbg-vlm">not loaded</span>
+      <span class="k">webgpu:</span><span class="v" id="dbg-gpu">–</span>
+    </div>
+    <h3>log</h3>
+    <div class="log" id="dbg-log"></div>
+  `;
+  document.body.appendChild(panel);
+  $('dbg-close').addEventListener('click', () => panel.remove());
+  $('dbg-gpu').textContent = navigator.gpu ? 'available' : 'unavailable';
+  $('dbg-gpu').className   = 'v ' + (navigator.gpu ? 'good' : 'bad');
+
+  const logEl = $('dbg-log');
+  const appendLog = (line, cls = '') => {
+    const div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.textContent = line;
+    logEl.appendChild(div);
+    while (logEl.children.length > 120) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+  onDebugLog((line) => appendLog(line));
+  appendLog(`${new Date().toISOString().slice(11,23)} debug panel attached`);
+
+  const iceClass = (st) => {
+    if (st === 'connected' || st === 'completed') return 'good';
+    if (st === 'checking' || st === 'new' || st === 'disconnected') return 'warn';
+    if (st === 'failed' || st === 'closed') return 'bad';
+    return '';
+  };
+
+  const renderWebrtc = async () => {
+    const host = $('dbg-state');
+    if (!phoneHandle || !phoneHandle.getState) {
+      host.innerHTML = `<span class="k">peer sync:</span><span class="v">off</span>`;
+      return;
+    }
+    const s = phoneHandle.getState();
+    const stats = await phoneHandle.getStats().catch(() => null);
+    const pc = s.pc || {};
+    const rtt = stats ? ((stats.currentRoundTripTime || 0) * 1000).toFixed(0) + ' ms' : '–';
+    const localCand  = stats?.local  ? `${stats.local.type}/${stats.local.protocol}`   : '–';
+    const remoteCand = stats?.remote ? `${stats.remote.type}/${stats.remote.protocol}` : '–';
+    host.innerHTML = `
+      <span class="k">role:</span><span class="v">${s.role}</span>
+      <span class="k">peerId:</span><span class="v">${s.peerId}</span>
+      <span class="k">room:</span><span class="v">${s.roomId}</span>
+      <span class="k">signaling:</span><span class="v">${s.signalingUrl}</span>
+      <span class="k">ws:</span><span class="v ${s.ws === 'OPEN' ? 'good' : 'warn'}">${s.ws}</span>
+      <span class="k">pc.signaling:</span><span class="v">${pc.signalingState || '–'}</span>
+      <span class="k">pc.ice:</span><span class="v ${iceClass(pc.iceConnectionState)}">${pc.iceConnectionState || '–'}</span>
+      <span class="k">pc.conn:</span><span class="v ${iceClass(pc.connectionState)}">${pc.connectionState || '–'}</span>
+      <span class="k">pc.gather:</span><span class="v">${pc.iceGatheringState || '–'}</span>
+      <span class="k">pending ice:</span><span class="v">${s.pendingIce}</span>
+      <span class="k">local cand:</span><span class="v">${localCand}</span>
+      <span class="k">remote cand:</span><span class="v">${remoteCand}</span>
+      <span class="k">rtt:</span><span class="v">${rtt}</span>
+      <span class="k">rx/tx bytes:</span><span class="v">${stats?.bytesReceived || 0} / ${stats?.bytesSent || 0}</span>
+    `;
+  };
+
+  setInterval(() => {
+    $('dbg-local').textContent = stream ? `${video.videoWidth || '?'}×${video.videoHeight || '?'}` : 'off';
+    $('dbg-local').className = 'v ' + (stream ? 'good' : '');
+    $('dbg-cls').textContent = classifierLoopActive
+      ? (emaLatMs ? `${emaLatMs.toFixed(0)} ms · ${currentFps.toFixed(1)} fps` : 'loading')
+      : 'idle';
+    $('dbg-qr').textContent  = qrLoopActive ? 'running' : 'off';
+    $('dbg-qr').className = 'v ' + (qrLoopActive ? 'good' : '');
+    $('dbg-qr-eng').textContent = qrDetector
+      ? (qrDetector.native ? 'BarcodeDetector (native)' : qrDetector.jsqr ? 'jsQR (fallback)' : 'disabled')
+      : 'uninitialised';
+    $('dbg-vlm').textContent = vlm ? 'loaded' : (vlmLoading ? 'loading…' : 'not loaded');
+    $('dbg-vlm').className = 'v ' + (vlm ? 'good' : '');
+    renderWebrtc().catch(() => {});
+  }, 500);
+}
 </script>
 
 </body>

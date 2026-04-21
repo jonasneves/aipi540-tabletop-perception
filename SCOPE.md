@@ -37,11 +37,11 @@ Expected result: MobileNet wins closed-set by large margins on latency and accur
 ## App
 
 Single-page `public/index.html`:
-- Webcam input (phone via WebRTC bridge, or laptop camera directly)
-- Live MobileNet inference at ~30fps with bounding boxes
-- Live VLM detection at ~0.7Hz with open-vocab text query
-- Live narration side panel (VLM describe mode) every ~2s
-- Fallback to static image upload if WebRTC fails
+- Camera input (phone via WebRTC bridge, or laptop camera directly)
+- Live MobileNet classifier at ~70 fps, top-1 chip with a confidence gate that reads "uncertain" out of distribution
+- On-demand VLM detection (~1.3 s/query) with open-vocab text input and NONE-sentinel refusal
+- Optional VLM narration toggle (off by default) — describes distinct visible objects while enabled
+- Active-feed glow on the stage while the camera is live
 
 ## Demo wow beat
 
